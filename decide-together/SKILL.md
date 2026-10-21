@@ -94,9 +94,21 @@ Use these columns:
 
 Keep the question in the table short (about 10 words at most). The full question goes into the decision card (see "Presenting a decision").
 
-Print the initial decision table as soon as you start the discussion.
+Print the initial decision table as soon as you start the discussion. Then ask about the level of detail (see "Level of detail") before you present the first decision.
 Re-print the whole decision table whenever there's a change.
 Always print the table *first*, then a short recap of what changed, then the decision card *last*. Assume any text you print *before* a table scrolls out of view and will easily be overlooked by the human.
+
+### Level of detail
+
+How many decisions a human wants to discuss differs from person to person and from task to task. Right after the initial table, ask whether it has the right level of detail. Give the number of decisions, and say concretely what a coarser and a finer table would look like for this requirement, e.g. "Coarser: 7 instead of 12 decisions. I would merge **3** and **4**, and bundle **8** to **12** for you to confirm in one go."
+Offer three answers: keep the table, make it coarser, or make it finer. Use the answer dialog if you have one, with the header `Detail`. This question is not a decision in the table, so it gets no number and no option codes.
+
+- **Coarser**: Merge closely related decisions into one. Bundle the decisions that have a clear recommendation and little impact on the implementation. Present the bundle once, after the key decisions are settled, as a list with your recommended option for each. The human can accept all of them with one answer, or name the ones they want to discuss. Accepting the bundle is explicit agreement to each decision in it.
+- **Finer**: Split decisions that combine several choices into sub-decisions (`2.1`, `2.2`). Add decisions for details you would otherwise settle on your own in the plan, such as names, error messages or edge cases.
+
+After a coarser or finer answer, number the decisions again from `1` and print the new table. Nothing has been discussed yet, so the new numbers confuse no one.
+
+The human can ask for a coarser or finer table later too. Then keep the numbers: mark merged decisions ➖ with "merged into **3**" in the Outcome column, and split decisions into sub-decisions.
 
 ### Avoid confusing decision codes with lists
 
