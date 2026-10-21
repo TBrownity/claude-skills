@@ -78,6 +78,7 @@ Track the resolution state of each decision with these emojis. Keep them for the
 - ⬜ The decision still needs to be discussed.
 - 💬 The decision is currently being discussed with the human.
 - ✅ The decision has been agreed upon and is settled. The Outcome column shows the chosen option's code and slug.
+- 🤖 You decided this on your own, because the human asked for fewer questions (see "Level of detail"). The Outcome column shows the chosen option's code and slug.
 - ⏸️ The discussion depends on another decision and is waiting. The Outcome column names that decision.
 - ➖ The decision is no longer relevant (e.g. the human has withdrawn a requirement, or a previous decision made the problem go away).
 
@@ -91,6 +92,7 @@ Use these columns:
 | 💬 | **2** | **xss-protection** | May welcome messages contain HTML? | |
 | ⏸️ | **3** | **preview** | Show a preview before sending? | waits on **2** |
 | ⬜ | **4** | **migration** | What happens to existing messages? | |
+| 🤖 | **5** | **save-notice** | What does the notice after saving say? | *5A (saved)* |
 
 Keep the question in the table short (about 10 words at most). The full question goes into the decision card (see "Presenting a decision").
 
@@ -100,15 +102,15 @@ Always print the table *first*, then a short recap of what changed, then the dec
 
 ### Level of detail
 
-How many decisions a human wants to discuss differs from person to person and from task to task. Right after the initial table, ask whether it has the right level of detail. Give the number of decisions, and say concretely what a coarser and a finer table would look like for this requirement, e.g. "Coarser: 7 instead of 12 decisions. I would merge **3** and **4**, and bundle **8** to **12** for you to confirm in one go."
-Offer three answers: keep the table, make it coarser, or make it finer. Use the answer dialog if you have one, with the header `Detail`. This question is not a decision in the table, so it gets no number and no option codes.
+How many decisions a human wants to discuss differs from person to person and from task to task. Right after the initial table, ask how many of them the human wants to discuss. Give the number of decisions, and say concretely what fewer or more questions would mean for this requirement, e.g. "I found 12 decisions. With fewer questions, I would decide **5**, **7**, **8** and **11** on my own. With more questions, I would also ask about details such as error messages and names."
+Offer three answers: fewer questions, all decisions in the table, or more questions. Use the answer dialog if you have one, with the header `Detail`. This question is not a decision in the table, so it gets no number and no option codes.
 
-- **Coarser**: Merge closely related decisions into one. Bundle the decisions that have a clear recommendation and little impact on the implementation. Present the bundle once, after the key decisions are settled, as a list with your recommended option for each. The human can accept all of them with one answer, or name the ones they want to discuss. Accepting the bundle is explicit agreement to each decision in it.
-- **Finer**: Split decisions that combine several choices into sub-decisions (`2.1`, `2.2`). Add decisions for details you would otherwise settle on your own in the plan, such as names, error messages or edge cases.
+- **Fewer questions**: Decide the small decisions on your own instead of asking. A decision is small when your recommendation is clear (see "Recommendation") and a wrong choice would be cheap to fix later. Keep discussing everything else: decisions with a real trade-off, decisions that depend on something only the human knows (product direction, team preferences, deadlines), and decisions that are hard to undo, such as database schema changes or public behaviour.
+- **More questions**: Also bring up details you would otherwise settle on your own in the plan, such as names, error messages or edge cases. Add them to the table with the next free numbers, or as sub-decisions (`2.1`, `2.2`) of the decision they belong to.
 
-After a coarser or finer answer, number the decisions again from `1` and print the new table. Nothing has been discussed yet, so the new numbers confuse no one.
+Mark each decision you make on your own with 🤖 in the table, with the chosen option in the Outcome column. Make it as soon as the decisions it depends on are settled. Do not present a decision card for it, but name it in your recap. The human can reopen any 🤖 decision by naming it; it then gets a decision card like any other.
 
-The human can ask for a coarser or finer table later too. Then keep the numbers: mark merged decisions ➖ with "merged into **3**" in the Outcome column, and split decisions into sub-decisions.
+Decisions that come up later in the discussion follow the same level. The human can change the level at any time. When they ask for fewer questions, decide the open small decisions on your own. When they ask for more, bring up the details you would have settled on your own.
 
 ### Avoid confusing decision codes with lists
 
@@ -253,7 +255,7 @@ Before you send a message that contains a decision card, check:
 
 ## Explicit agreement
 
-Only lock a decision when the human agrees explicitly.
+Only lock a decision when the human agrees explicitly. The only exception are small decisions the human left to you by asking for fewer questions (see "Level of detail").
 When you make a counter-proposal to the human's input, or answer the human's question, end your message by asking again whether you are in agreement. Ask it as a concrete yes/no question that names the decision and option code, e.g. "Shall we lock **2 (xss-protection)** as *2A+ (sanitize)*, with `u` added to the allow-list?"
 When you use the answer dialog, ask this as a dialog too, with options like `Lock 2A+` and `Keep discussing`.
 This confirmation question is enough while you are converging on one option. If the discussion reopens the choice between several options, show the decision card again, with the same letters.
@@ -277,6 +279,7 @@ Open a dialog only when a decision is ready to be made. While the human is still
 
 When everything is agreed and no open question or edge case remains:
 - Print the final table
+- If you made decisions on your own (🤖), name them once more, so the human can reopen any of them before the plan is written
 - Ask whether to write a detailed execution plan.
   If yes, put it where the project keeps plans (e.g. `doc/plans`, or `plans/`)
 - Ask whether the human wants you to fully and autonomously implement the requirements, now that you are in full alignment.

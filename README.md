@@ -39,7 +39,7 @@ Changes compared to the original (as of [`ea53bd2`](https://github.com/triskweli
 - Rules that keep option codes stable: contiguous letters, codes never re-lettered, codes for sub-decisions (`2.1A`).
 - A checklist to run before sending a decision card.
 - Asking for agreement as a concrete yes/no question that names the decision and option code.
-- After the first decision table, the skill asks whether you want it coarser (related decisions merged, small ones bundled for one confirmation) or finer (sub-decisions, more details). You can change this later too.
+- After the first decision table, the skill asks how many questions you want. With fewer, it makes small decisions (clear recommendation, cheap to change later) on its own and marks them 🤖 in the table. With more, it also asks about details. You can change this at any time and reopen any 🤖 decision.
 - Decisions can be answered with a click in a question dialog (in Claude Code: `AskUserQuestion`), which the original deliberately avoided. Where no such dialog exists, the plain-text card remains.
 
 At the end, the skill can hand over to [build-alone](#build-alone) for an autonomous implementation.
