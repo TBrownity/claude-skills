@@ -7,10 +7,21 @@ A personal collection of [Claude Code skills](https://docs.claude.com/en/docs/cl
 | Skill | Description |
 | --- | --- |
 | [decide-together](decide-together/) | Plans a change by walking through the future implementation and settling every decision, edge case and blocker with you before any code is written. The result is a plan an agent can execute without further questions. |
+| [build-alone](build-alone/) | Implements agreed requirements autonomously and end to end (tests, trimming, full test run, self-review), and only interrupts for true showstoppers. |
 
 ## Installation
 
-Copy a skill folder into `~/.claude/skills/` (available in all projects) or into `.claude/skills/` of a project.
+On Windows, link the skill folders into your personal skills folder with PowerShell. Run this from the repository root:
+
+```powershell
+$skills = "$env:USERPROFILE\.claude\skills"
+New-Item -ItemType Directory -Force $skills | Out-Null
+foreach ($skill in "decide-together", "build-alone") {
+    New-Item -ItemType Junction -Path "$skills\$skill" -Target "$PWD\$skill"
+}
+```
+
+A junction needs no admin rights, and changes in the repository apply without reinstalling. To install a skill for a single project only, copy or link its folder into that project's `.claude/skills/` instead.
 
 Each skill folder also contains a `.skill` file. It is the same skill packaged as a zip archive, e.g. for uploading in the Claude apps.
 
@@ -29,7 +40,15 @@ Changes compared to the original (as of [`ea53bd2`](https://github.com/triskweli
 - A checklist to run before sending a decision card.
 - Asking for agreement as a concrete yes/no question that names the decision and option code.
 
-At the end, the skill can hand over to the `/build-alone` skill from triskweline/skills for an autonomous implementation. That skill is not part of this repository. If it is not installed, `decide-together` does the step itself.
+At the end, the skill can hand over to [build-alone](#build-alone) for an autonomous implementation.
+
+## build-alone
+
+Implements a set of requirements on its own, from a feature branch through tests, trimming, a full test run and a self-review to a hand-off. It only interrupts for true showstoppers. It pairs with `decide-together`: settle every decision first, then let `build-alone` implement them.
+
+`build-alone` is copied from [`build-alone`](https://github.com/triskweline/skills/tree/main/skills/build-alone) in [triskweline/skills](https://github.com/triskweline/skills) by Henning Koch, licensed under the MIT License (see [build-alone/LICENSE](build-alone/LICENSE)). The only change compared to the original (as of [`ea53bd2`](https://github.com/triskweline/skills/tree/ea53bd2c9ffdc037b7f203b8c86e3094f0fba371/skills/build-alone)): references to `/agree-on-everything` now point to `/decide-together`.
+
+The skill also uses these skills from triskweline/skills, which are not part of this repository: `/work-in-branch`, `/effective-rails-testing`, `/trim-code`, `/pass-all-checks` and `/self-review`. If one is missing, `build-alone` says so in one line and does that step itself.
 
 ## License
 
