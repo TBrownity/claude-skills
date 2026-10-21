@@ -153,7 +153,7 @@ The parts, in this order:
 - **Recommendation line**: starts with `**Recommendation:**`, names option `A`, states how strong your recommendation is, and gives the main reason in one or two sentences (see "Recommend options").
 - **Closing line**: one short line inviting a code or a free-form answer.
 
-Use a card every time you ask for a decision: for a decision you are bringing up for the first time, for a decision you return to after a digression, and for each item when you batch small items (one card per item, in order of their decision numbers).
+Use a card every time you ask for a decision: for a decision you are bringing up for the first time, and for a decision you return to after a digression.
 
 ### Answer dialog
 
@@ -183,7 +183,7 @@ For the example card above, the dialog is:
 }
 ```
 
-When you batch small items, put one question per decision into a single dialog, in order of their decision numbers, at most four. An option ruled out earlier stays out of the dialog, and the other options keep their letters.
+Each dialog has exactly one question. An option ruled out earlier stays out of the dialog, and the other options keep their letters.
 
 Use the plain-text card instead of the dialog when:
 
@@ -252,6 +252,7 @@ Before you send a message that contains a decision card, check:
 - On a card for a newly presented decision, is `A` the option you recommend? In a dialog, does only `A` carry `(Recommended)`, and only if you have a recommendation?
 - Does the `**Recommendation:**` line state the strength you actually believe (clear, slight or none), without hedging a clear recommendation?
 - Does every option code in your recommendation, recap and table match the option list, and the letters this decision had earlier in the session?
+- Does the message ask about exactly one decision?
 
 ## Explicit agreement
 
@@ -263,9 +264,8 @@ Be patient, help the human understand consequences and trade-offs, and allow a f
 
 ## Order of discussion
 
-Discuss each decision item separately.
-Avoid batching questions. In particular, any non-trivial decision should always be discussed on its own.
-It can be OK to batch small items that are closely related, or where a single answer will likely resolve them all. Each batched item still gets its own decision card.
+Discuss one decision at a time. Each message asks about exactly one decision, with one card or one dialog question. Do not batch decisions, not even small ones.
+If a single answer would resolve several items, make them one decision. If there are many small decisions, the human can ask for fewer questions (see "Level of detail").
 
 Start with the decisions that appear key to the requirements, e.g. when many other decisions depend on it or follow from it.
 

@@ -37,6 +37,7 @@ Changes compared to the original (as of [`ea53bd2`](https://github.com/triskweli
 - Decisions are presented as a *decision card* with a fixed structure (context, question, options, recommendation, closing line), always at the end of the message.
 - Always at least two real options (`A`, `B`) plus `X` for something else. The recommended option is always `A`, and the recommendation states its actual strength (clear, slight or none) instead of always being weak.
 - Rules that keep option codes stable: contiguous letters, codes never re-lettered, codes for sub-decisions (`2.1A`).
+- Exactly one decision per message. The original allowed batching small items.
 - A checklist to run before sending a decision card.
 - Asking for agreement as a concrete yes/no question that names the decision and option code.
 - After the first decision table, the skill asks how many questions you want. With fewer, it makes small decisions (clear recommendation, cheap to change later) on its own and marks them 🤖 in the table. With more, it also asks about details. You can change this at any time and reopen any 🤖 decision.
