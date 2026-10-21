@@ -56,6 +56,23 @@ The final test run is the exception: if a permission it needs is missing at the 
 
 Non-trivial requirements should be implemented in a feature branch, using the `/work-in-branch` skill.
 
+## Track progress
+
+The human may look in during your run and wants to see at a glance how far you are. Track your progress in a task list.
+
+If you have a tool for a task list (in Claude Code: `TodoWrite`, or `TaskCreate` and `TaskUpdate`), create the list right after the preparatory window, before you change any code. Use these tasks, in this order:
+
+- One task per step of the implementation plan, if there is one (e.g. from `/decide-together`). Otherwise one task per larger part of the requirements. Each of these tasks includes the tests for its step.
+- Trim the change (leave it out if the human chose to skip trimming).
+- Run all checks.
+- Self-review.
+- Hand off.
+
+Name each task so the human understands it without further context, e.g. `Add opt-in column to users`, not `Step 2`.
+Keep exactly one task in progress at a time, and mark it done as soon as it is finished, not in a batch at the end. When new work comes up, such as failing tests to fix or findings from the self-review, add a task for it instead of hiding it in the current one.
+
+If you have no such tool, print one progress line whenever you start a task, e.g. `▰▰▰▱▱▱ 3/6 Run all checks`: a filled block for each finished task, an empty block for each open task, the number of finished and all tasks, and the task you start now.
+
 ## Implement everything autonomously
 
 Implement your entire requirements autonomously. Avoid stopping for user input if possible.

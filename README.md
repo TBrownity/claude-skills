@@ -49,7 +49,10 @@ At the end, the skill can hand over to [build-alone](#build-alone) for an autono
 
 Implements a set of requirements on its own, from a feature branch through tests, trimming, a full test run and a self-review to a hand-off. It only interrupts for true showstoppers. It pairs with `decide-together`: settle every decision first, then let `build-alone` implement them.
 
-`build-alone` is copied from [`build-alone`](https://github.com/triskweline/skills/tree/main/skills/build-alone) in [triskweline/skills](https://github.com/triskweline/skills) by Henning Koch, licensed under the MIT License (see [build-alone/LICENSE](build-alone/LICENSE)). The only change compared to the original (as of [`ea53bd2`](https://github.com/triskweline/skills/tree/ea53bd2c9ffdc037b7f203b8c86e3094f0fba371/skills/build-alone)): references to `/agree-on-everything` now point to `/decide-together`.
+`build-alone` is copied from [`build-alone`](https://github.com/triskweline/skills/tree/main/skills/build-alone) in [triskweline/skills](https://github.com/triskweline/skills) by Henning Koch, licensed under the MIT License (see [build-alone/LICENSE](build-alone/LICENSE)). Changes compared to the original (as of [`ea53bd2`](https://github.com/triskweline/skills/tree/ea53bd2c9ffdc037b7f203b8c86e3094f0fba371/skills/build-alone)):
+
+- References to `/agree-on-everything` now point to `/decide-together`.
+- The skill tracks its progress in Claude Code's task list, one task per plan step plus trimming, checks, self-review and hand-off. Without a task list, it prints a progress line like `▰▰▰▱▱▱ 3/6 Run all checks`.
 
 The skill also uses these skills from triskweline/skills, which are not part of this repository: `/work-in-branch`, `/effective-rails-testing`, `/trim-code`, `/pass-all-checks` and `/self-review`. If one is missing, `build-alone` says so in one line and does that step itself.
 
