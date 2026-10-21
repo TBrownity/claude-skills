@@ -38,17 +38,28 @@ The most important preparation is ensuring your requirements are complete. There
 If you just ran the `/decide-together` skill, you already know everything you will need for an autonomous implementation.
 If you are still unsure about anything, use the `/decide-together` skill to fully align with your human.
 
-Your harness or instructions might require you to ask permission for certain actions during your work, e.g. for committing, pushing a branch or running commands against a remote system. Ask now for the permissions you expect to need, so your run won't stall on a permission prompt while the human is away. Bundle your asks into a single question that explains what you need and why.
-Include one more question in that bundle, for trimming with `/trim-code`:
+Next, ask the human how to build. Ask these two questions together, before you ask for permissions, because the answers decide which permissions you need:
 
-> After implementing, I can simplify the code. This takes extra time. Should I?
+> **Checks:** How thoroughly should I test and review the change?
 >
-> - (a) Yes (default): simplify the change itself, with small rewrites of existing code where they help. I'll propose larger rewrites and behavior changes to you at the end.
+> - (a) Full: add tests for the change, run the whole test suite and all linters at the end, and have a sub-agent review the change.
+> - (b) No review: add tests and run the whole test suite and all linters, but skip the review.
+> - (c) Light: only run the existing tests related to the change. No new tests, no full test suite, no review.
+>
+> **Trimming:** After implementing, I can simplify the code. This takes extra time. Should I?
+>
+> - (a) Yes: simplify the change itself, with small rewrites of existing code where they help. I'll propose larger rewrites and behavior changes to you at the end.
 > - (b) No: skip simplifying.
 
-Without a clear answer, use (a). With (b), skip the trimming step below.
+Recommend one option per question, and mark it with `(recommended)`. For the checks, go by the size of the change: (a) for a non-trivial change, (b) for a small one, and (c) only for a trivial one, like a changed text or config value. For trimming, recommend (a), unless you have a good reason for (b). Without a clear answer to a question, use your recommendation.
 
-The full test suite at the end (`/pass-all-checks`) usually runs on CI. Before you ask your bundle, check whether the project has CI and a large suite, as `/pass-all-checks` describes under *Decide the test route first*. If so, include in the bundle whatever starts a pipeline there: pushing the feature branch, and opening a draft merge request with the exact title and description you would use. Don't leave this for the end: by then the human is away, and the run would either stall or fall back to hours of local tests.
+If you have a tool that lets the human answer by picking from a list of options (in Claude Code: `AskUserQuestion`), ask both questions in one dialog, with the headers `Checks` and `Trimming`, and add ` (Recommended)` to the label of the option you recommend.
+
+The answers hold for the rest of the run: skip the steps below that the human left out.
+
+Your harness or instructions might require you to ask permission for certain actions during your work, e.g. for committing, pushing a branch or running commands against a remote system. Ask now for the permissions you expect to need, so your run won't stall on a permission prompt while the human is away. Bundle your asks into a single question that explains what you need and why.
+
+If the human chose to run the full test suite (checks (a) or (b)), it usually runs on CI (`/pass-all-checks`). Before you ask your bundle, check whether the project has CI and a large suite, as `/pass-all-checks` describes under *Decide the test route first*. If so, include in the bundle whatever starts a pipeline there: pushing the feature branch, and opening a draft merge request with the exact title and description you would use. Don't leave this for the end: by then the human is away, and the run would either stall or fall back to hours of local tests.
 
 If during your run you discover more permissions are needed, postpone the affected actions and finish the part of your work you already have permission for. Don't get around a missing permission by other means, and don't complicate your work just to avoid an action it needs. When you can no longer continue, accept the interruption and ask for another permission batch.
 
@@ -64,8 +75,8 @@ If you have a tool for a task list (in Claude Code: `TodoWrite`, or `TaskCreate`
 
 - One task per step of the implementation plan, if there is one (e.g. from `/decide-together`). Otherwise one task per larger part of the requirements. Each of these tasks includes the tests and the commit for its step.
 - Trim the change (leave it out if the human chose to skip trimming).
-- Run all checks.
-- Self-review.
+- Run all checks (leave it out with light checks).
+- Self-review (only with full checks).
 - Hand off.
 
 Name each task so the human understands it without further context, e.g. `Add opt-in column to users`, not `Step 2`.
@@ -87,7 +98,7 @@ Assume all checks were passing before you started your changes.
 Verify *any* change by running possibly related tests (e.g. tests that mention the code identifiers, screens or UI elements you worked with). If you're unsure if a test is related, run it.
 Tests can be useful before your implementation is complete. Consider verifying incremental work by getting quick feedback from individual test files, or even individual test cases (test with line number, e.g. `foo_spec:23`).
 
-Add tests for everything you do or change. For Ruby on Rails apps, use the `/effective-rails-testing` skill.
+Unless the human chose light checks, add tests for everything you do or change. For Ruby on Rails apps, use the `/effective-rails-testing` skill.
 Also fix existing tests that broke because of behavior changes.
 
 ## Commit in logical steps
@@ -114,7 +125,7 @@ Don't split finer than that, e.g. into one commit per file. Each commit should m
 
 Commit each task as soon as its related tests pass, before you mark it done. If you leave committing to the end, all changes sit in one working tree and are hard to separate again.
 
-Fixes that come later, from trimming, the full checks or the self-review, are split the same way: one commit per topic, with a message that says what it fixes or simplifies, never a single commit like "Address review findings". Don't amend or rebase earlier commits to fold fixes in: once the branch is pushed, that needs a force-push. When `/trim-code` ends its report with a paragraph **For the commit message:**, put it into the message of the trim commit it belongs to.
+Fixes that come later, from trimming, the full test run or the self-review, are split the same way: one commit per topic, with a message that says what it fixes or simplifies, never a single commit like "Address review findings". Don't amend or rebase earlier commits to fold fixes in: once the branch is pushed, that needs a force-push. When `/trim-code` ends its report with a paragraph **For the commit message:**, put it into the message of the trim commit it belongs to.
 
 Before each commit:
 
@@ -128,26 +139,26 @@ If you may not commit, keep the same split as a proposal. At the hand-off, list 
 ## Trim the change
 
 Unless the human chose to skip it, make your change smaller once the related tests pass, using the `/trim-code` skill.
-The full test suite runs in the next step anyway, so while trimming, run the related tests `/trim-code` asks for, but not the full suite.
+While trimming, run the related tests `/trim-code` asks for, but not the full suite: if the human chose it, it runs in the next step anyway.
 It applies its L1 trims, and returns its L2 refactorings and L3 behavior cuts for approval. Don't apply those yourself: they need the human's approval. Keep them for the hand-off.
 Its report names the existing code that applied trims touched. Point those locations out for a thorough human review in the hand-off.
 
 ## Run all checks
 
-Any non-trivial change must *additionally* be verified by running the *full* test suite and linters. Use the `/pass-all-checks` skill.
+Unless the human chose light checks, *additionally* verify the change by running the *full* test suite and linters. Use the `/pass-all-checks` skill.
 The full test suite is slow. Only run the full test suite *after* possibly related tests (fast) already pass, and after trimming, if you trimmed.
 
 ## Self-review
 
 A review pass will meaningfully improve the quality of your changes, reducing the burden on a human code review to find all faults.
 
-Review your work using a sub-agent, using the `/self-review` skill.
+If the human chose full checks, review your work using a sub-agent, using the `/self-review` skill.
 
 ## Hand-off to the human
 
-Only when your implementation is complete, verified and reviewed, hand off your work to the human:
+Only when your implementation is complete and has passed the checks the human chose, hand off your work to the human:
 
-- Recap your work (implementation, trimming, verification, self-review).
+- Recap your work (implementation, and the trimming, verification and self-review the human chose).
 - List your commits in order, with their messages. If you could not commit, give the proposed commits instead, as *Commit in logical steps* describes.
 - List the L2 refactorings and L3 behavior cuts from trimming that await approval, as `/trim-code` reports them, with their codes (R1, R2, …) and under the headings it uses for them: each with the lines it saves, its review effort, for L3 the behavior it changes, and the recommendation. Ask which to apply.
 - Point out any decision that you are unsure about.
@@ -157,4 +168,4 @@ Only when your implementation is complete, verified and reviewed, hand off your 
 
 ## Begin your work
 
-Now implement the requirements end-to-end: verify with tests, commit in logical steps, trim, self-review, and only then hand off to the human.
+Now implement the requirements end-to-end with the checks and trimming the human chose, commit in logical steps, and only then hand off to the human.

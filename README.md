@@ -53,6 +53,7 @@ Implements a set of requirements on its own, from a feature branch through tests
 
 - References to `/agree-on-everything` now point to `/decide-together`.
 - The skill tracks its progress in Claude Code's task list, one task per plan step plus trimming, checks, self-review and hand-off. Without a task list, it prints a progress line like `▰▰▰▱▱▱ 3/6 Run all checks`.
+- Before it starts, the skill asks two questions in one dialog: how thoroughly to check the change (full, without the self-review, or only the related existing tests) and whether to trim. For the checks, it recommends an option by the size of the change. Steps left out are skipped for the rest of the run.
 - The skill commits in logical steps: one commit per logical change, made as soon as a task's tests pass, with refactorings, unrelated fixes, formatting and dependency upgrades kept apart. Later fixes from trimming and self-review are split by topic instead of landing in one big commit. If it may not commit, it proposes the split at the hand-off.
 
 The skill also uses these skills from triskweline/skills, which are not part of this repository: `/work-in-branch`, `/effective-rails-testing`, `/trim-code`, `/pass-all-checks` and `/self-review`. If one is missing, `build-alone` says so in one line and does that step itself.
