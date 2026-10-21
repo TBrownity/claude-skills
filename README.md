@@ -39,6 +39,7 @@ Changes compared to the original (as of [`ea53bd2`](https://github.com/triskweli
 - Rules that keep option codes stable: contiguous letters, codes never re-lettered, codes for sub-decisions (`2.1A`).
 - A checklist to run before sending a decision card.
 - Asking for agreement as a concrete yes/no question that names the decision and option code.
+- Decisions can be answered with a click in a question dialog (in Claude Code: `AskUserQuestion`), which the original deliberately avoided. Where no such dialog exists, the plain-text card remains.
 
 At the end, the skill can hand over to [build-alone](#build-alone) for an autonomous implementation.
 

@@ -105,7 +105,7 @@ For enumerations in prose text, prefer lower-cased letters (`a.`, `b.`, `c.`) or
 
 ## Presenting a decision
 
-Whenever you ask the human for a decision, present it as a decision card with the structure below, and put it at the very end of your message. Ending on the card means the question is the last thing the human reads, right above the place where they type their answer.
+Whenever you ask the human for a decision, present it as a decision card with the structure below, and put it at the very end of your message. Ending on the card means the question is the last thing the human reads, right above the place where they type their answer. If you can let the human answer through a dialog, do so (see "Answer dialog").
 
 ```markdown
 **2 (xss-protection)**
@@ -140,6 +140,49 @@ The parts, in this order:
 - **Closing line**: one short line inviting a code or a free-form answer.
 
 Use a card every time you ask for a decision: for a decision you are bringing up for the first time, for a decision you return to after a digression, and for each item when you batch small items (one card per item, in order of their decision numbers).
+
+### Answer dialog
+
+If you have a tool that lets the human answer by picking from a list of options (in Claude Code: `AskUserQuestion`), use it for the card, so the human can answer with a click. The card then has two parts:
+
+- **In the chat**: heading, context and recommendation line, in this order. Leave out the question line, the options and the closing line, because the dialog shows them.
+- **In the dialog**, opened right after the chat part as the last thing in your message:
+  - `header`: `#` and the decision number, e.g. `#2` or `#2.1`.
+  - `question`: the decision number and slug, then the full decision question, e.g. `2 (xss-protection): Should admins be able to use HTML in WelcomeMessage#body, and if so, how do we keep it safe to render?`
+  - `options`: the real options in letter order, at most four (`A` to `D`). The `label` is the option code and slug, e.g. `2A sanitize`. Add ` (Recommended)` to the label of `A`, unless your recommendation is "none". The `description` gives the option's trade-offs in one or two sentences.
+  - No option for `X`: the dialog's built-in free-text answer takes its place.
+  - Single-select only. When the options are easiest to compare as code (a schema, a method signature), you can add a short snippet as each option's `preview`.
+
+For the example card above, the dialog is:
+
+```json
+{
+  "questions": [{
+    "header": "#2",
+    "question": "2 (xss-protection): Should admins be able to use HTML in WelcomeMessage#body, and if so, how do we keep it safe to render?",
+    "multiSelect": false,
+    "options": [
+      {"label": "2A sanitize (Recommended)", "description": "Allow b, i and a, strip everything else. Keeps existing messages intact, but needs tests for the allow-list."},
+      {"label": "2B escape-everything", "description": "Treat the body as plain text. Smallest change, but existing messages show their <b> tags literally."}
+    ]
+  }]
+}
+```
+
+When you batch small items, put one question per decision into a single dialog, in order of their decision numbers, at most four. An option ruled out earlier stays out of the dialog, and the other options keep their letters.
+
+Use the plain-text card instead of the dialog when:
+
+- you have no such tool,
+- more than four options are still open,
+- the human has said they prefer to answer in text. Keep the text card for the rest of the session then.
+
+Read the answer like this:
+
+- The human picks an option without a note: that is explicit agreement. Lock the decision.
+- The human picks an option and adds a note: treat the note as a refinement (e.g. `2A+`) or a question, and continue as in "Explicit agreement".
+- The human writes their own answer: discuss it. If it is a different approach, it becomes `X` with a new slug.
+- The human dismisses the dialog or replies in chat: continue the discussion in prose.
 
 ## Recommend options
 
@@ -190,9 +233,9 @@ When the human makes a decision that is fundamentally different from the options
 
 Before you send a message that contains a decision card, check:
 
-- Does every card have exactly one `**Question:**` line, and is it a concrete question about this codebase?
-- Are the letters of every card contiguous (`A`, `B`, ...), in alphabetical order, and followed by `X`?
-- On a card for a newly presented decision, is `A` the option you recommend?
+- Does every card have exactly one question, as the `**Question:**` line or as the dialog question, and is it a concrete question about this codebase?
+- Are the letters of every card contiguous (`A`, `B`, ...), in alphabetical order, and followed by `X` (in a dialog: by its free-text answer)?
+- On a card for a newly presented decision, is `A` the option you recommend? In a dialog, does only `A` carry `(Recommended)`, and only if you have a recommendation?
 - Does the `**Recommendation:**` line state the strength you actually believe (clear, slight or none), without hedging a clear recommendation?
 - Does every option code in your recommendation, recap and table match the option list, and the letters this decision had earlier in the session?
 
@@ -200,6 +243,7 @@ Before you send a message that contains a decision card, check:
 
 Only lock a decision when the human agrees explicitly.
 When you make a counter-proposal to the human's input, or answer the human's question, end your message by asking again whether you are in agreement. Ask it as a concrete yes/no question that names the decision and option code, e.g. "Shall we lock **2 (xss-protection)** as *2A+ (sanitize)*, with `u` added to the allow-list?"
+When you use the answer dialog, ask this as a dialog too, with options like `Lock 2A+` and `Keep discussing`.
 This confirmation question is enough while you are converging on one option. If the discussion reopens the choice between several options, show the decision card again, with the same letters.
 Be patient, help the human understand consequences and trade-offs, and allow a full discussion. Never push the human into making an uninformed decision, even when the discussion drags on.
 
@@ -211,11 +255,11 @@ It can be OK to batch small items that are closely related, or where a single an
 
 Start with the decisions that appear key to the requirements, e.g. when many other decisions depend on it or follow from it.
 
-## Free discussion, not multiple-choice
+## Free discussion, quick answers
 
-Keep this a free-form discussion in prose. Do not present decisions through a multiple-choice UI (no `AskUserQuestion`-style widget). The decision card is plain chat text, not a widget.
-The shorthand codes (or option slugs) are a convenience for quick replies, not a wizard: the human should always feel free to think out loud, push back, or propose something you didn't list.
-Explain to the human that they can freely choose any other approach by typing prose into chat.
+Keep this a free-form discussion. The answer dialog and the shorthand codes (or option slugs) are a convenience for quick replies, not a wizard: the human should always feel free to think out loud, push back, or propose something you didn't list.
+Explain to the human that they can freely choose any other approach, by writing their own answer in the dialog or by typing prose into chat.
+Open a dialog only when a decision is ready to be made. While the human is still asking questions or weighing trade-offs, answer in prose, and open the dialog once the discussion converges.
 
 ## Finishing up
 
