@@ -16,7 +16,7 @@ Each skill folder also contains a `.skill` file. It is the same skill packaged a
 
 ## decide-together
 
-`decide-together` is based on [`agree-on-everything`](https://github.com/triskweline/skills/tree/main/skills/agree-on-everything) from [triskweline/skills](https://github.com/triskweline/skills) by Henning Koch, licensed under the MIT License (see [decide-together/LICENSE](decide-together/LICENSE)).
+`decide-together` is based on [`agree-on-everything`](https://github.com/triskweline/skills/tree/main/skills/agree-on-everything) from [triskweline/skills](https://github.com/triskweline/skills) by Henning Koch, licensed under the MIT License. Its [LICENSE](decide-together/LICENSE) carries the copyright notices of both the original and the modified version.
 
 Changes compared to the original (as of [`ea53bd2`](https://github.com/triskweline/skills/tree/ea53bd2c9ffdc037b7f203b8c86e3094f0fba371/skills/agree-on-everything)):
 
@@ -30,3 +30,7 @@ Changes compared to the original (as of [`ea53bd2`](https://github.com/triskweli
 - Asking for agreement as a concrete yes/no question that names the decision and option code.
 
 At the end, the skill can hand over to the `/build-alone` skill from triskweline/skills for an autonomous implementation. That skill is not part of this repository. If it is not installed, `decide-together` does the step itself.
+
+## License
+
+MIT License, see [LICENSE](LICENSE). Skills based on the work of others keep the original copyright notice in their own `LICENSE` file.
