@@ -53,14 +53,34 @@ Next, ask the human how to build. Ask these three questions together, before you
 >
 > **Commits:** How should I commit my work?
 >
-> - (a) One commit per logical change: refactorings, unrelated fixes and formatting each get a commit of their own, and later fixes are split by topic.
-> - (b) One commit per task: one commit for each task in my task list.
+> - (a) One commit per task: one commit for each task in my task list, including trimming and later fixes.
+> - (b) One commit per logical change: refactorings, unrelated fixes and formatting each get a commit of their own, and later fixes are split by topic.
 > - (c) One commit for the whole change.
 > - (d) No commits: I leave the changes uncommitted and propose how to split them into commits.
 
 Recommend one option per question, and mark it with `(recommended)`. For the checks, go by the size of the change: (a) for a non-trivial change, (b) for a small one, and (c) only for a trivial one, like a changed text or config value. For trimming and commits, recommend (a), unless you have a good reason for another option. Without a clear answer to a question, use your recommendation.
 
-If you have a tool that lets the human answer by picking from a list of options (in Claude Code: `AskUserQuestion`), ask the three questions in one dialog, with the headers `Checks`, `Trimming` and `Commits`, and add ` (Recommended)` to the label of the option you recommend.
+For each option of the commits question, show the commits it would create, in order, with the messages you expect to give them, in the project's style as `git log` shows it:
+
+- (a): one commit per task, named like the tasks in your task list (see *Track progress*), plus one for trimming. Leave out tasks that change no code, like running the checks. End with a line that later fixes get a commit each.
+- (b): one commit per logical change, as *Commit your work* describes, e.g. with a refactoring split off before the change that needs it. End with a line that later fixes are split by topic.
+- (c): the one commit message.
+- (d): the commits you would propose at the hand-off, under a line saying that nothing gets committed.
+
+These lists are a forecast, since the work may still reveal a better split. Say so once, in the commits question.
+
+If you have a tool that lets the human answer by picking from a list of options (in Claude Code: `AskUserQuestion`), ask the three questions in one dialog, with the headers `Checks`, `Trimming` and `Commits`, and add ` (Recommended)` to the label of the option you recommend. Put each commits option's list of commits into its `preview`, e.g. for (a):
+
+```text
+1. Add opt-in column to users
+2. Show opt-in checkbox on signup
+3. Send reminder mail
+4. Simplify reminder scheduling
+
++ one commit per later fix
+```
+
+Without a dialog, put each list under its option.
 
 The answers hold for the rest of the run: skip the steps below that the human left out, and commit as *Commit your work* describes for the chosen option. Choosing (a), (b) or (c) for commits gives you permission to commit.
 
@@ -112,8 +132,8 @@ Also fix existing tests that broke because of behavior changes.
 
 A reviewer reads your work commit by commit. One large commit that mixes several changes is hard to review, and it can't be reverted in parts. Commit as the human chose:
 
-- **One commit per logical change:** as the rest of this section describes.
 - **One commit per task:** commit each task of your task list as soon as it is finished, before you mark it done. This includes trimming, and tasks you added later, like fixes from the checks or the self-review.
+- **One commit per logical change:** as the rest of this section describes.
 - **One commit for the whole change:** commit once, right before the hand-off. If the full test suite runs on CI, commit before you push for it instead, and put later fixes into one more commit.
 - **No commits:** leave everything uncommitted. At the hand-off, propose commits split by logical change, in order, each with its message and its files (for a file shared between commits, which part goes where), and offer to create them.
 
