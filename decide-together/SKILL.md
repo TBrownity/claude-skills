@@ -105,7 +105,7 @@ The first message is the exception, because its question about the level of deta
 
 How many decisions a human wants to discuss differs from person to person and from task to task. Right after the initial table, ask how many of them the human wants to discuss. This question is not a decision in the table, so it gets no number and no option codes.
 
-- **Fewer questions**: Decide the small decisions on your own instead of asking. A decision is small when your recommendation is clear (see "Recommendation") and a wrong choice would be cheap to fix later. Keep discussing everything else: decisions with a real trade-off, decisions that depend on something only the human knows (product direction, team preferences, deadlines), and decisions that are hard to undo, such as database schema changes or public behaviour.
+- **Fewer questions**: Decide the small decisions on your own instead of asking. A decision is small when your recommendation is strong (see "Recommendation") and a wrong choice would be cheap to fix later. Keep discussing everything else: decisions with a real trade-off, decisions that depend on something only the human knows (product direction, team preferences, deadlines), and decisions that are hard to undo, such as database schema changes or public behaviour.
 - **More questions**: Also bring up details you would otherwise settle on your own in the plan, such as names, error messages or edge cases. Add them to the table with the next free numbers, or as sub-decisions (`2.1`, `2.2`) of the decision they belong to.
 
 The human can only choose well if each answer says concretely what it means for this requirement. A bare "fewer questions" or a list of decision numbers tells them nothing, because the dialog hides the table, and nobody remembers what **7** was. So before you ask, work out:
@@ -213,7 +213,7 @@ If you have a tool that lets the human answer by picking from a list of options 
 - **In the dialog**, opened right after the chat part as the last thing in your message:
   - `header`: `#` and the decision number, e.g. `#2` or `#2.1`.
   - `question`: the decision number and slug, then the full decision question, e.g. `2 (xss-protection): Should admins be able to use HTML in WelcomeMessage#body, and if so, how do we keep it safe to render?`
-  - `options`: the real options in letter order, at most four (`A` to `D`). The `label` is the option code and slug, e.g. `2A sanitize`. Add ` (Recommended)` to the label of `A`, unless your recommendation is "none". The `description` gives the option's trade-offs in one or two sentences.
+  - `options`: the real options in letter order, at most four (`A` to `D`). The `label` is the option code and slug, e.g. `2A sanitize`. Add the strength of your recommendation to the label of the option you recommend: ` (Strongly recommended)`, ` (Recommended)` or ` (Weakly recommended)` (see "Recommendation"). With no recommendation, no label gets a suffix. The `description` gives the option's trade-offs in one or two sentences.
   - No option for `X`: the dialog's built-in free-text answer takes its place.
   - Single-select only. When the options are easiest to compare as code (a schema, a method signature), you can add a short snippet as each option's `preview`.
 
@@ -226,7 +226,7 @@ For the example card above, the dialog is:
     "question": "2 (xss-protection): Should admins be able to use HTML in WelcomeMessage#body, and if so, how do we keep it safe to render?",
     "multiSelect": false,
     "options": [
-      {"label": "2A sanitize (Recommended)", "description": "Allow b, i and a, strip everything else. Keeps existing messages intact, but needs tests for the allow-list."},
+      {"label": "2A sanitize (Strongly recommended)", "description": "Allow b, i and a, strip everything else. Keeps existing messages intact, but needs tests for the allow-list."},
       {"label": "2B escape-everything", "description": "Treat the body as plain text. Smallest change, but existing messages show their <b> tags literally."}
     ]
   }]
@@ -265,11 +265,12 @@ The option you recommend is always `A`. Decide which one you recommend before yo
 
 State the recommendation with the strength it actually has. Pick the one that matches your assessment:
 
-- **Clear**: `A` is better in most of the dimensions that matter for this project, and the other options only win in narrow cases. Say so plainly, e.g. "Clearly *2A (sanitize)*."
-- **Slight**: there is a real trade-off, and `A` wins on balance. Say so, and name what would tip it towards `B`.
-- **None**: the options are genuinely balanced, or the choice depends on something only the human knows (product direction, team preferences, deadlines). Say that you have no preference and what the choice depends on. In this case, list the option with the fewest changes as `A`.
+- **Strong**: `A` is better in most of the dimensions that matter for this project, and the other options only win in narrow cases. Say so plainly, e.g. "Clearly *2A (sanitize)*." In a dialog: `(Strongly recommended)`.
+- **Normal**: there is a real trade-off, and `A` wins on balance for this project. The other options would only be better under conditions you consider unlikely here; name them. In a dialog: `(Recommended)`.
+- **Weak**: the options are close, and `A` wins by a small margin. Say so, e.g. "Slightly *2A (sanitize)*", and name what would tip it towards `B`, especially if it is something only the human knows. In a dialog: `(Weakly recommended)`.
+- **None**: the options are genuinely balanced, or the choice depends entirely on something only the human knows (product direction, team preferences, deadlines). Say that you have no preference and what the choice depends on. In this case, list the option with the fewest changes as `A`.
 
-Do not soften a clear recommendation into "I lean slightly towards ..." out of politeness. A hedge that does not match your assessment hides information the human needs to decide well. A clear recommendation is not pressure as long as the other options are described fairly, with their real advantages, and the human knows they can pick any of them or something else. Make sure `B` is a real alternative described on its merits, not a straw man that makes `A` look good.
+Do not soften a strong recommendation into "I lean slightly towards ..." out of politeness. A hedge that does not match your assessment hides information the human needs to decide well. A clear recommendation is not pressure as long as the other options are described fairly, with their real advantages, and the human knows they can pick any of them or something else. Make sure `B` is a real alternative described on its merits, not a straw man that makes `A` look good.
 
 ## Option codes
 
@@ -301,8 +302,8 @@ Before you send a message that contains a decision card, check:
 
 - Does every card have exactly one question, as the `**Question:**` line or as the dialog question, and is it a concrete question about this codebase?
 - Are the letters of every card contiguous (`A`, `B`, ...), in alphabetical order, and followed by `X` (in a dialog: by its free-text answer)?
-- On a card for a newly presented decision, is `A` the option you recommend? In a dialog, does only `A` carry `(Recommended)`, and only if you have a recommendation?
-- Does the `**Recommendation:**` line state the strength you actually believe (clear, slight or none), without hedging a clear recommendation?
+- On a card for a newly presented decision, is `A` the option you recommend? In a dialog, does only the recommended option carry a suffix, and does the suffix match the strength in the recommendation line?
+- Does the `**Recommendation:**` line state the strength you actually believe (strong, normal, weak or none), without hedging a strong recommendation?
 - Does the dialog make sense without the chat text, with no bare decision numbers?
 - Does every option code in your recommendation, recap and table match the option list, and the letters this decision had earlier in the session?
 - Does the message ask about exactly one decision?
