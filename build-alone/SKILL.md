@@ -58,7 +58,7 @@ Next, ask the human how to build. Ask these three questions together, before you
 > - (c) One commit for the whole change.
 > - (d) No commits: I leave the changes uncommitted and propose how to split them into commits.
 
-Recommend one option per question, and mark it with `(recommended)`. For the checks, go by the size of the change: (a) for a non-trivial change, (b) for a small one, and (c) only for a trivial one, like a changed text or config value. For trimming and commits, recommend (a), unless you have a good reason for another option. Without a clear answer to a question, use your recommendation.
+Recommend one option per question, and mark it with how strongly you recommend it: `(strongly recommended)` when the other options only fit narrow cases, `(recommended)` when your pick wins on balance, and `(weakly recommended)` when the options are close. Don't soften a strong recommendation out of politeness. For the checks, go by the size of the change: (a) for a non-trivial change, (b) for a small one, and (c) only for a trivial one, like a changed text or config value. For trimming and commits, recommend (a), unless you have a good reason for another option. Without a clear answer to a question, use your recommendation.
 
 For each option of the commits question, show the commits it would create, in order, with the messages you expect to give them, in the project's style as `git log` shows it:
 
@@ -69,7 +69,7 @@ For each option of the commits question, show the commits it would create, in or
 
 These lists are a forecast, since the work may still reveal a better split. Say so once, in the commits question.
 
-If you have a tool that lets the human answer by picking from a list of options (in Claude Code: `AskUserQuestion`), ask the three questions in one dialog, with the headers `Checks`, `Trimming` and `Commits`, and add ` (Recommended)` to the label of the option you recommend. Put each commits option's list of commits into its `preview`, e.g. for (a):
+If you have a tool that lets the human answer by picking from a list of options (in Claude Code: `AskUserQuestion`), ask the three questions in one dialog, with the headers `Checks`, `Trimming` and `Commits`, and add ` (Strongly recommended)`, ` (Recommended)` or ` (Weakly recommended)` to the label of the option you recommend. Put each commits option's list of commits into its `preview`, e.g. for (a):
 
 ```text
 1. Add opt-in column to users
