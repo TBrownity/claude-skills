@@ -40,7 +40,7 @@ Changes compared to the original (as of [`ea53bd2`](https://github.com/triskweli
 - Exactly one decision per message. The original allowed batching small items.
 - A checklist to run before sending a decision card.
 - Asking for agreement as a concrete yes/no question that names the decision and option code.
-- After the first decision table, the skill asks how many questions you want. With fewer, it makes small decisions (clear recommendation, cheap to change later) on its own and marks them 🤖 in the table. With more, it also asks about details. You can change this at any time and reopen any 🤖 decision.
+- After the first decision table, the skill asks how many questions you want. With fewer, it makes small decisions (clear recommendation, cheap to change later) on its own and marks them 🤖 in the table. With more, it also asks about details. You can change this at any time and reopen any 🤖 decision. The message that asks this always contains the whole table, right above the question. The answers themselves say what they mean, so you can choose without the table: discuss all decisions, fewer (listing each decision it would make on its own, with its pick), or more (listing the questions it would add). The dialog never refers to a decision by its bare number.
 - Decisions can be answered with a click in a question dialog (in Claude Code: `AskUserQuestion`), which the original deliberately avoided. Where no such dialog exists, the plain-text card remains.
 
 At the end, the skill can hand over to [build-alone](#build-alone) for an autonomous implementation.

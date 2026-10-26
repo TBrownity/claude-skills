@@ -99,14 +99,64 @@ Keep the question in the table short (about 10 words at most). The full question
 Print the initial decision table as soon as you start the discussion. Then ask about the level of detail (see "Level of detail") before you present the first decision.
 Re-print the whole decision table whenever there's a change.
 Always print the table *first*, then a short recap of what changed, then the decision card *last*. Assume any text you print *before* a table scrolls out of view and will easily be overlooked by the human.
+The first message is the exception, because its question about the level of detail refers to the decisions in the table. It must contain the whole table: print what you found first, kept to a few lines, then the table, then the question. Put nothing between the table and the question, so the table is still in view when the human answers. Never ask this question in a message without the table.
 
 ### Level of detail
 
-How many decisions a human wants to discuss differs from person to person and from task to task. Right after the initial table, ask how many of them the human wants to discuss. Give the number of decisions, and say concretely what fewer or more questions would mean for this requirement, e.g. "I found 12 decisions. With fewer questions, I would decide **5**, **7**, **8** and **11** on my own. With more questions, I would also ask about details such as error messages and names."
-Offer three answers: fewer questions, all decisions in the table, or more questions. Use the answer dialog if you have one, with the header `Detail`. This question is not a decision in the table, so it gets no number and no option codes.
+How many decisions a human wants to discuss differs from person to person and from task to task. Right after the initial table, ask how many of them the human wants to discuss. This question is not a decision in the table, so it gets no number and no option codes.
 
 - **Fewer questions**: Decide the small decisions on your own instead of asking. A decision is small when your recommendation is clear (see "Recommendation") and a wrong choice would be cheap to fix later. Keep discussing everything else: decisions with a real trade-off, decisions that depend on something only the human knows (product direction, team preferences, deadlines), and decisions that are hard to undo, such as database schema changes or public behaviour.
 - **More questions**: Also bring up details you would otherwise settle on your own in the plan, such as names, error messages or edge cases. Add them to the table with the next free numbers, or as sub-decisions (`2.1`, `2.2`) of the decision they belong to.
+
+The human can only choose well if each answer says concretely what it means for this requirement. A bare "fewer questions" or a list of decision numbers tells them nothing, because the dialog hides the table, and nobody remembers what **7** was. So before you ask, work out:
+
+- which decisions you would make on your own with fewer questions, and the answer you would pick for each,
+- which details you would add with more questions, each phrased as a short concrete question.
+
+Then offer these answers, in this order:
+
+- **All decisions**: discuss every decision in the table.
+- **Fewer**: name each decision you would make on your own, with its number, its slug and the answer you would pick.
+- **More**: name each question you would add.
+
+If a list would grow beyond about 15 lines, name categories instead, with their count and two or three examples, e.g. `6 wording details (notices, labels, e.g. the save notice)`. Leave out an answer that would change nothing, e.g. "Fewer" when no decision is small. If only "All decisions" remains, skip the question and say in one line that you will discuss every decision.
+
+Use the answer dialog if you have one. The dialog does not show the table, so it never replaces it: print the table in the chat first, in the same message, as "Printing the decision table" describes. The dialog itself must be answerable without the table:
+
+- `header`: `Detail`.
+- `question`: the number of decisions, then the question, e.g. `I found 12 decisions. How many of them do you want to discuss?`
+- `options`: the answers in the order above. The `label` names the answer and how many decisions you would discuss with it, e.g. `All 12 decisions`, `Fewer: 8 decisions`, `More: 16 decisions`. The `description` says in one sentence what changes, by category. The `preview` holds the list: for "All decisions", every decision in the table with its number, slug and short question; for "Fewer" and "More", the lists described above.
+
+For a table with 12 decisions, the dialog could be:
+
+```json
+{
+  "questions": [{
+    "header": "Detail",
+    "question": "I found 12 decisions. How many of them do you want to discuss?",
+    "multiSelect": false,
+    "options": [
+      {
+        "label": "All 12 decisions",
+        "description": "I ask about every decision in the table, one at a time.",
+        "preview": " 1 opt-in-flag      Where do we store the opt-in?\n 2 xss-protection   May welcome messages contain HTML?\n 3 preview          Show a preview before sending?\n 4 migration        What happens to existing messages?\n 5 save-notice      What does the notice after saving say?\n 6 admin-access     Which admins may edit messages?\n 7 button-label     What does the send button say?\n 8 sort-order       How is the message list sorted?\n 9 delivery         Send right away or in a background job?\n10 unsubscribe      Can users opt out again, and where?\n11 empty-state      What shows when there are no messages?\n12 audit-log        Do we log who changed a message?"
+      },
+      {
+        "label": "Fewer: 8 decisions",
+        "description": "I decide 4 wording and display details on my own: the save notice, the button label, the sort order and the empty state.",
+        "preview": "I decide on my own:\n\n 5 save-notice    \"Welcome message saved.\"\n 7 button-label   \"Send welcome message\"\n 8 sort-order     newest first, like other admin lists\n11 empty-state    short hint with a \"New message\" link\n\nWe discuss the other 8."
+      },
+      {
+        "label": "More: 16 decisions",
+        "description": "I also ask about 4 details I would otherwise settle in the plan: a name, an error message and two edge cases.",
+        "preview": "I also ask:\n\n- What do we call the new column on users?\n- Which error does the admin see when sending fails?\n- What happens for users without an email address?\n- Do we resend when an admin edits a sent message?"
+      }
+    ]
+  }]
+}
+```
+
+Without a dialog, ask the question after the table, with the same three answers as a list, each followed by its list of decisions or questions.
 
 Mark each decision you make on your own with 🤖 in the table, with the chosen option in the Outcome column. Make it as soon as the decisions it depends on are settled. Do not present a decision card for it, but name it in your recap. The human can reopen any 🤖 decision by naming it; it then gets a decision card like any other.
 
@@ -185,6 +235,8 @@ For the example card above, the dialog is:
 
 Each dialog has exactly one question. An option ruled out earlier stays out of the dialog, and the other options keep their letters.
 
+While the dialog is open, the human may not see your chat text. Write the dialog so it can be answered on its own: wherever it mentions another decision, give its number, its slug and what it is about, never a bare number.
+
 Use the plain-text card instead of the dialog when:
 
 - you have no such tool,
@@ -251,6 +303,7 @@ Before you send a message that contains a decision card, check:
 - Are the letters of every card contiguous (`A`, `B`, ...), in alphabetical order, and followed by `X` (in a dialog: by its free-text answer)?
 - On a card for a newly presented decision, is `A` the option you recommend? In a dialog, does only `A` carry `(Recommended)`, and only if you have a recommendation?
 - Does the `**Recommendation:**` line state the strength you actually believe (clear, slight or none), without hedging a clear recommendation?
+- Does the dialog make sense without the chat text, with no bare decision numbers?
 - Does every option code in your recommendation, recap and table match the option list, and the letters this decision had earlier in the session?
 - Does the message ask about exactly one decision?
 
