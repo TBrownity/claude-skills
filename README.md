@@ -32,18 +32,19 @@ Each skill folder also contains a `.skill` file. It is the same skill packaged a
 Changes compared to the original (as of [`ea53bd2`](https://github.com/triskweline/skills/tree/ea53bd2c9ffdc037b7f203b8c86e3094f0fba371/skills/agree-on-everything)):
 
 - Renamed from `agree-on-everything` to `decide-together`.
+- Where possible, a sub-agent analyses the codebase and returns only the relevant code locations and candidate decisions, so the files it reads stay out of the long discussion.
 - Every decision is phrased as a concrete question about the codebase as soon as it is added to the table.
-- Fixed emojis for the decision states and a fixed column layout for the decision table.
+- Fixed emojis for the decision states and a fixed column layout for the decision table. The whole table is printed only at the start, when decisions are added or dropped, every four or five settled decisions, on request and at the end. Other messages start with a one-line status of what changed.
 - Decisions are presented as a *decision card* with a fixed structure (context, question, options, recommendation, closing line), always at the end of the message.
 - Always at least two real options (`A`, `B`) plus `X` for something else. The recommended option is always `A`, and the recommendation states its actual strength (strong, normal, weak or none) instead of always being weak. In the question dialog, the recommended option is labelled `(Strongly recommended)`, `(Recommended)` or `(Weakly recommended)`.
 - Rules that keep option codes stable: contiguous letters, codes never re-lettered, codes for sub-decisions (`2.1A`).
-- Exactly one decision per message. The original allowed batching small items.
+- A decision with a real trade-off, that is hard to undo or that others depend on gets a message of its own. Up to four small, independent decisions with a strong recommendation can share one dialog.
 - A checklist to run before sending a decision card.
-- Asking for agreement as a concrete yes/no question that names the decision and option code.
+- Asking for agreement as a concrete yes/no question that names the decision and option code. Picking an option with a note that clearly refines it locks the decision right away, without asking again.
 - After the first decision table, the skill asks how many questions you want. With fewer, it makes small decisions (strong recommendation, cheap to change later) on its own and marks them 🤖 in the table. With more, it also asks about details. You can change this at any time and reopen any 🤖 decision. The message that asks this always contains the whole table, right above the question. The answers themselves say what they mean, so you can choose without the table: discuss all decisions, fewer (listing each decision it would make on its own, with its pick), or more (listing the questions it would add). The dialog never refers to a decision by its bare number.
 - Decisions can be answered with a click in a question dialog (in Claude Code: `AskUserQuestion`), which the original deliberately avoided. Where no such dialog exists, the plain-text card remains.
 
-At the end, the skill can hand over to [build-alone](#build-alone) for an autonomous implementation.
+At the end, the skill writes a plan that stands on its own and suggests implementing it with [build-alone](#build-alone) in a fresh session (`/clear`, then `/build-alone <plan>`), so the discussion isn't carried through every step of the implementation.
 
 ## build-alone
 

@@ -24,23 +24,14 @@ To discover the required decisions, walk through the future implementation in yo
 - Reusing or changing the frontend component library (e.g. buttons, cards)
 - Resolving tensions with existing functionality that would be affected by this change
 
+The discussion will run for many turns, and everything you read now stays in this conversation for all of them. So if you can start a sub-agent (in Claude Code: the `Agent` tool, e.g. with the `Explore` type), let it do the analysis. Give it the requirements and the steps above, and ask it to return only:
+
+- the code locations the change touches, as `file:line`, with one line each on what is there,
+- the candidate decisions, each with a draft question and what the code says about it.
+
+Treat its findings as leads. Later, when you write the card for a decision, read the few code locations that decision rests on yourself, not whole directories.
+
 Then talk to the human until you agree on every single decision.
-
-## Dependency check
-
-This skill uses other skills from triskweline/skills. Your harness may announce only some
-of the installed skills to you, so check which of them are installed by looking in its
-standard skill locations. A skill you do not find there is missing.
-
-| Skill | Role in this skill |
-| --- | --- |
-| `/build-alone` | Runs the autonomous implementation if the human asks for one at the end. |
-
-If all are available, say nothing about it and go on. For each missing skill, say in one
-line that it is missing and what you use instead: another skill you have that fills the
-role, or that you do the step yourself. Then continue. Where this skill's instructions name
-a missing skill, use your substitute for the rest of this run. Do not ask whether to install
-or what to substitute, and never install anything yourself.
 
 ## Tracking decisions
 
@@ -97,8 +88,18 @@ Use these columns:
 Keep the question in the table short (about 10 words at most). The full question goes into the decision card (see "Presenting a decision").
 
 Print the initial decision table as soon as you start the discussion. Then ask about the level of detail (see "Level of detail") before you present the first decision.
-Re-print the whole decision table whenever there's a change.
-Always print the table *first*, then a short recap of what changed, then the decision card *last*. Assume any text you print *before* a table scrolls out of view and will easily be overlooked by the human.
+
+A full table on every turn costs a lot of output and fills the conversation with copies. Print the whole table only:
+
+- in the first message,
+- when decisions are added, split or dropped,
+- after every fourth or fifth settled decision, since the last full table,
+- when the human asks for it,
+- at the end (see "Finishing up").
+
+In every other message, start with one status line of what changed and how far you are, e.g. `✅ **2 (xss-protection)** → *2A (sanitize)* · 🤖 **5 (save-notice)** → *5A (saved)* · 💬 **3 (preview)** · 6/12 settled`.
+
+Always print the table or status line *first*, then a short recap of what changed, then the decision card *last*. Assume any text you print *before* a table scrolls out of view and will easily be overlooked by the human.
 The first message is the exception, because its question about the level of detail refers to the decisions in the table. It must contain the whole table: print what you found first, kept to a few lines, then the table, then the question. Put nothing between the table and the question, so the table is still in view when the human answers. Never ask this question in a message without the table.
 
 ### Level of detail
@@ -138,7 +139,7 @@ For a table with 12 decisions, the dialog could be:
     "options": [
       {
         "label": "All 12 decisions",
-        "description": "I ask about every decision in the table, one at a time.",
+        "description": "I ask about every decision in the table.",
         "preview": " 1 opt-in-flag      Where do we store the opt-in?\n 2 xss-protection   May welcome messages contain HTML?\n 3 preview          Show a preview before sending?\n 4 migration        What happens to existing messages?\n 5 save-notice      What does the notice after saving say?\n 6 admin-access     Which admins may edit messages?\n 7 button-label     What does the send button say?\n 8 sort-order       How is the message list sorted?\n 9 delivery         Send right away or in a background job?\n10 unsubscribe      Can users opt out again, and where?\n11 empty-state      What shows when there are no messages?\n12 audit-log        Do we log who changed a message?"
       },
       {
@@ -158,7 +159,7 @@ For a table with 12 decisions, the dialog could be:
 
 Without a dialog, ask the question after the table, with the same three answers as a list, each followed by its list of decisions or questions.
 
-Mark each decision you make on your own with 🤖 in the table, with the chosen option in the Outcome column. Make it as soon as the decisions it depends on are settled. Do not present a decision card for it, but name it in your recap. The human can reopen any 🤖 decision by naming it; it then gets a decision card like any other.
+Mark each decision you make on your own with 🤖 in the table, with the chosen option in the Outcome column. Make it as soon as the decisions it depends on are settled. Do not present a decision card for it, but name it in your status line and recap. The human can reopen any 🤖 decision by naming it; it then gets a decision card like any other.
 
 Decisions that come up later in the discussion follow the same level. The human can change the level at any time. When they ask for fewer questions, decide the open small decisions on your own. When they ask for more, bring up the details you would have settled on your own.
 
@@ -233,7 +234,7 @@ For the example card above, the dialog is:
 }
 ```
 
-Each dialog has exactly one question. An option ruled out earlier stays out of the dialog, and the other options keep their letters.
+Each dialog question covers exactly one decision. A dialog usually has one question, or up to four for a batch of small decisions (see "Order of discussion"). An option ruled out earlier stays out of the dialog, and the other options keep their letters.
 
 While the dialog is open, the human may not see your chat text. Write the dialog so it can be answered on its own: wherever it mentions another decision, give its number, its slug and what it is about, never a bare number.
 
@@ -246,7 +247,8 @@ Use the plain-text card instead of the dialog when:
 Read the answer like this:
 
 - The human picks an option without a note: that is explicit agreement. Lock the decision.
-- The human picks an option and adds a note: treat the note as a refinement (e.g. `2A+`) or a question, and continue as in "Explicit agreement".
+- The human picks an option and adds a note that clearly refines it, e.g. "but also allow `u`": lock the decision as `2A+` with that refinement right away, without asking again, and name the refinement in your status line. The human can reopen it.
+- The human picks an option and adds a note that is a question, a doubt, or changes the option substantially: continue as in "Explicit agreement".
 - The human writes their own answer: discuss it. If it is a different approach, it becomes `X` with a new slug.
 - The human dismisses the dialog or replies in chat: continue the discussion in prose.
 
@@ -306,11 +308,11 @@ Before you send a message that contains a decision card, check:
 - Does the `**Recommendation:**` line state the strength you actually believe (strong, normal, weak or none), without hedging a strong recommendation?
 - Does the dialog make sense without the chat text, with no bare decision numbers?
 - Does every option code in your recommendation, recap and table match the option list, and the letters this decision had earlier in the session?
-- Does the message ask about exactly one decision?
+- Does the message ask about one decision, or about a batch of at most four small, independent decisions in one dialog?
 
 ## Explicit agreement
 
-Only lock a decision when the human agrees explicitly. The only exception are small decisions the human left to you by asking for fewer questions (see "Level of detail").
+Only lock a decision when the human agrees explicitly. Picking an option counts, also with a note that clearly refines it (see "Answer dialog"), and so does naming a code with such a refinement in chat, e.g. "2A, but also allow `u`". The only decisions you lock without the human are the small ones they left to you by asking for fewer questions (see "Level of detail").
 When you make a counter-proposal to the human's input, or answer the human's question, end your message by asking again whether you are in agreement. Ask it as a concrete yes/no question that names the decision and option code, e.g. "Shall we lock **2 (xss-protection)** as *2A+ (sanitize)*, with `u` added to the allow-list?"
 When you use the answer dialog, ask this as a dialog too, with options like `Lock 2A+` and `Keep discussing`.
 This confirmation question is enough while you are converging on one option. If the discussion reopens the choice between several options, show the decision card again, with the same letters.
@@ -318,7 +320,18 @@ Be patient, help the human understand consequences and trade-offs, and allow a f
 
 ## Order of discussion
 
-Discuss one decision at a time. Each message asks about exactly one decision, with one card or one dialog question. Do not batch decisions, not even small ones.
+Every message costs a turn, so small decisions can share one. Discuss a decision on its own, with one card or one dialog question, when it has a real trade-off (a normal, weak or no recommendation), is hard to undo, or other decisions depend on it.
+
+Ask about up to four other decisions together, in one dialog, when each of them:
+
+- has a strong recommendation,
+- needs at most two sentences of context,
+- is independent of the others in the batch, so no answer changes the options of another.
+
+In the chat, give each decision of the batch its heading, context and recommendation line, in the order of the dialog questions. The dialog then has one question per decision, each as "Answer dialog" describes. Read each answer on its own: lock the decisions the human picked, and discuss the ones they wrote their own answer for, one at a time.
+
+Batch only in a dialog, which shows one question at a time. Without a dialog, several text cards in one message blur together, so ask about one decision per message.
+
 If a single answer would resolve several items, make them one decision. If there are many small decisions, the human can ask for fewer questions (see "Level of detail").
 
 Start with the decisions that appear key to the requirements, e.g. when many other decisions depend on it or follow from it.
@@ -334,10 +347,10 @@ Open a dialog only when a decision is ready to be made. While the human is still
 When everything is agreed and no open question or edge case remains:
 - Print the final table
 - If you made decisions on your own (🤖), name them once more, so the human can reopen any of them before the plan is written
-- Ask whether to write a detailed execution plan.
-  If yes, put it where the project keeps plans (e.g. `doc/plans`, or `plans/`)
-- Ask whether the human wants you to fully and autonomously implement the requirements, now that you are in full alignment.
-  If yes, use the `/build-alone` skill.
+- Write a detailed execution plan where the project keeps plans (e.g. `doc/plans`, or `plans/`; if there is no such place, use `plans/`). The plan must stand on its own, because the implementation runs without this conversation: every decision with its outcome and the reason for it, the code locations to change, the order of the steps, and everything you learned about the code that the implementation needs.
+- Suggest implementing the plan in a fresh session: `/clear`, then `/build-alone <path to the plan>`. Say in one line why: in this session, the whole discussion would be carried through every step of the implementation and cost usage each time. If the human wants to implement in this session anyway, use the `/build-alone` skill.
+
+To find out whether `/build-alone` is installed, start from the list of skills your harness shows you. Only if it is not in that list, look in the harness's standard skill locations, since some harnesses announce only some of the installed skills. If it is missing, say so in one line and suggest a fresh session with "Implement `<path to the plan>`" instead. Never install anything yourself.
 
 ## Begin your work
 
