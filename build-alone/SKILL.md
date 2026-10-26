@@ -9,9 +9,10 @@ Your task is to implement requirements on your own, without further human input.
 
 ## Dependency check
 
-This skill uses other skills from triskweline/skills. Your harness may announce only some
-of the installed skills to you, so check which of them are installed by looking in its
-standard skill locations. A skill you do not find there is missing.
+This skill uses other skills from triskweline/skills. Start from the list of skills your
+harness shows you. Only for a skill not in that list, look in the harness's standard skill
+locations, since some harnesses announce only some of the installed skills. A skill you do
+not find there is missing.
 
 | Skill | Role in this skill |
 | --- | --- |
@@ -35,7 +36,7 @@ Use this window to pull everything you need from the human, so you can work inde
 After the preparatory window, the human will be away for a long time. When the human returns, they expect you to be ready to hand-off a high-quality implementation with no major issues.
 
 The most important preparation is ensuring your requirements are complete. There must be no undecided questions that would block you from implementing the requirements without further user input.
-If you just ran the `/decide-together` skill, you already know everything you will need for an autonomous implementation.
+If you were given a plan from `/decide-together` (usually as a path, e.g. `/build-alone plans/opt-in.md`), read it first: it holds every decision you need, and the discussion behind it is not part of this session. If you ran `/decide-together` in this very session, you already know everything you will need for an autonomous implementation.
 If you are still unsure about anything, use the `/decide-together` skill to fully align with your human.
 
 Next, ask the human how to build. Ask these three questions together, before you ask for permissions, because the answers decide which permissions you need:
@@ -65,7 +66,7 @@ For each option of the commits question, show the commits it would create, in or
 - (a): one commit per task, named like the tasks in your task list (see *Track progress*), plus one for trimming. Leave out tasks that change no code, like running the checks. End with a line that later fixes get a commit each.
 - (b): one commit per logical change, as *Commit your work* describes, e.g. with a refactoring split off before the change that needs it. End with a line that later fixes are split by topic.
 - (c): the one commit message.
-- (d): the commits you would propose at the hand-off, under a line saying that nothing gets committed.
+- (d): one line saying that nothing gets committed, and that you would propose the commits of (b) at the hand-off. Don't repeat the list of (b).
 
 These lists are a forecast, since the work may still reveal a better split. Say so once, in the commits question.
 
@@ -124,6 +125,8 @@ Assume all checks were passing before you started your changes.
 
 Verify *any* change by running possibly related tests (e.g. tests that mention the code identifiers, screens or UI elements you worked with). If you're unsure if a test is related, run it.
 Tests can be useful before your implementation is complete. Consider verifying incremental work by getting quick feedback from individual test files, or even individual test cases (test with line number, e.g. `foo_spec:23`).
+
+Everything a test or linter prints stays in your context for the rest of the run, and you will run them many times. So run them in a way that prints little: with a quiet or progress reporter that lists only the failures (e.g. `rspec --format progress`, `pytest -q`), or show only the end of a long log. Look at the full output only for a test that fails. This also holds for the runs of `/pass-all-checks`.
 
 Unless the human chose light checks, add tests for everything you do or change. For Ruby on Rails apps, use the `/effective-rails-testing` skill.
 Also fix existing tests that broke because of behavior changes.
