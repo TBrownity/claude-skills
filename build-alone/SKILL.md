@@ -18,7 +18,6 @@ not find there is missing.
 | --- | --- |
 | `/decide-together` | Settles every open requirement question with the human before the autonomous run starts. |
 | `/work-in-branch` | Moves the work onto a properly named feature branch. |
-| `/effective-rails-testing` | Picks the kind of test to add for each change when the project is a Rails app. |
 | `/trim-code` | Makes the working change smaller; the L2 refactorings and L3 behavior cuts it leaves for approval are kept for the hand-off. |
 | `/pass-all-checks` | Runs the whole test suite and all linters at the end and fixes failures. |
 | `/self-review` | Has a sub-agent review the finished change; valid findings are folded back in. |
@@ -39,13 +38,18 @@ The most important preparation is ensuring your requirements are complete. There
 If you were given a plan from `/decide-together` (usually as a path, e.g. `/build-alone plans/opt-in.md`), read it first: it holds every decision you need, and the discussion behind it is not part of this session. If you ran `/decide-together` in this very session, you already know everything you will need for an autonomous implementation.
 If you are still unsure about anything, use the `/decide-together` skill to fully align with your human.
 
-Next, ask the human how to build. Ask these three questions together, before you ask for permissions, because the answers decide which permissions you need:
+Next, ask the human how to build. Ask these four questions together, before you ask for permissions, because the answers decide which permissions you need:
 
-> **Checks:** How thoroughly should I test and review the change?
+> **Checks:** Which checks should I do? Pick any number of them.
 >
-> - (a) Full: add tests for the change, run the whole test suite and all linters at the end, and have a sub-agent review the change.
-> - (b) No review: add tests and run the whole test suite and all linters, but skip the review.
-> - (c) Light: only run the existing tests related to the change. No new tests, no full test suite, no review.
+> - Tests: add tests for the change.
+> - Linters: run all linters at the end.
+> - Review: have a sub-agent review the change.
+>
+> **Test run:** Which tests should I run at the end?
+>
+> - (a) Full suite: the whole test suite, once the related tests pass.
+> - (b) Related only: the new tests and the existing tests related to the change.
 >
 > **Trimming:** After implementing, I can simplify the code. This takes extra time. Should I?
 >
@@ -59,7 +63,7 @@ Next, ask the human how to build. Ask these three questions together, before you
 > - (c) One commit for the whole change.
 > - (d) No commits: I leave the changes uncommitted and propose how to split them into commits.
 
-Recommend one option per question, and mark it with how strongly you recommend it: `(strongly recommended)` when the other options only fit narrow cases, `(recommended)` when your pick wins on balance, and `(weakly recommended)` when the options are close. Don't soften a strong recommendation out of politeness. For the checks, go by the size of the change: (a) for a non-trivial change, (b) for a small one, and (c) only for a trivial one, like a changed text or config value. For trimming and commits, recommend (a), unless you have a good reason for another option. Without a clear answer to a question, use your recommendation.
+Recommend one option per question, and mark it with how strongly you recommend it: `(strongly recommended)` when the other options only fit narrow cases, `(recommended)` when your pick wins on balance, and `(weakly recommended)` when the options are close. Don't soften a strong recommendation out of politeness. For the checks, recommend each check on its own and mark every check you recommend. For the checks and the test run, go by the size of the change: all three checks and (a) for a non-trivial change, tests, linters and (a) for a small one, and no checks and (b) only for a trivial one, like a changed text or config value. For trimming and commits, recommend (a), unless you have a good reason for another option. Without a clear answer to a question, use your recommendation. Picking no checks is a clear answer.
 
 For each option of the commits question, show the commits it would create, in order, with the messages you expect to give them, in the project's style as `git log` shows it:
 
@@ -70,7 +74,7 @@ For each option of the commits question, show the commits it would create, in or
 
 These lists are a forecast, since the work may still reveal a better split. Say so once, in the commits question.
 
-If you have a tool that lets the human answer by picking from a list of options (in Claude Code: `AskUserQuestion`), ask the three questions in one dialog, with the headers `Checks`, `Trimming` and `Commits`, and add ` (Strongly recommended)`, ` (Recommended)` or ` (Weakly recommended)` to the label of the option you recommend. Put each commits option's list of commits into its `preview`, e.g. for (a):
+If you have a tool that lets the human answer by picking from a list of options (in Claude Code: `AskUserQuestion`), ask the four questions in one dialog, with the headers `Checks`, `Test run`, `Trimming` and `Commits`, and add ` (Strongly recommended)`, ` (Recommended)` or ` (Weakly recommended)` to the label of the option you recommend. Ask the checks as a question that allows several answers (in `AskUserQuestion`: `multiSelect: true`), with one option per check. Put each commits option's list of commits into its `preview`, e.g. for (a):
 
 ```text
 1. Add opt-in column to users
@@ -87,7 +91,7 @@ The answers hold for the rest of the run: skip the steps below that the human le
 
 Your harness or instructions might require you to ask permission for certain actions during your work, e.g. for pushing a branch or running commands against a remote system. Ask now for the permissions you expect to need, so your run won't stall on a permission prompt while the human is away. Bundle your asks into a single question that explains what you need and why.
 
-If the human chose to run the full test suite (checks (a) or (b)), it usually runs on CI (`/pass-all-checks`). Before you ask your bundle, check whether the project has CI and a large suite, as `/pass-all-checks` describes under *Decide the test route first*. If so, include in the bundle whatever starts a pipeline there: pushing the feature branch, and opening a draft merge request with the exact title and description you would use. Don't leave this for the end: by then the human is away, and the run would either stall or fall back to hours of local tests. Without commits (commits (d)), there is nothing to push, so the suite runs locally.
+If the human chose to run the full test suite, it usually runs on CI (`/pass-all-checks`). Before you ask your bundle, check whether the project has CI and a large suite, as `/pass-all-checks` describes under *Decide the test route first*. If so, include in the bundle whatever starts a pipeline there: pushing the feature branch, and opening a draft merge request with the exact title and description you would use. Don't leave this for the end: by then the human is away, and the run would either stall or fall back to hours of local tests. Without commits (commits (d)), there is nothing to push, so the suite runs locally.
 
 If during your run you discover more permissions are needed, postpone the affected actions and finish the part of your work you already have permission for. Don't get around a missing permission by other means, and don't complicate your work just to avoid an action it needs. When you can no longer continue, accept the interruption and ask for another permission batch.
 
@@ -103,8 +107,8 @@ If you have a tool for a task list (in Claude Code: `TodoWrite`, or `TaskCreate`
 
 - One task per step of the implementation plan, if there is one (e.g. from `/decide-together`). Otherwise one task per larger part of the requirements. Each of these tasks includes testing its step and committing it as *Commit your work* describes.
 - Trim the change (leave it out if the human chose to skip trimming).
-- Run all checks (leave it out with light checks).
-- Self-review (only with full checks).
+- Run all checks: the full test suite and the linters, as far as the human chose them (leave it out if they chose neither).
+- Self-review (only if the human chose the review).
 - Hand off.
 
 Name each task so the human understands it without further context, e.g. `Add opt-in column to users`, not `Step 2`.
@@ -128,7 +132,7 @@ Tests can be useful before your implementation is complete. Consider verifying i
 
 Everything a test or linter prints stays in your context for the rest of the run, and you will run them many times. So run them in a way that prints little: with a quiet or progress reporter that lists only the failures (e.g. `rspec --format progress`, `pytest -q`), or show only the end of a long log. Look at the full output only for a test that fails. This also holds for the runs of `/pass-all-checks`.
 
-Unless the human chose light checks, add tests for everything you do or change. For Ruby on Rails apps, use the `/effective-rails-testing` skill.
+If the human chose to add tests, add tests for everything you do or change.
 Also fix existing tests that broke because of behavior changes.
 
 ## Commit your work
@@ -181,14 +185,14 @@ Its report names the existing code that applied trims touched. Point those locat
 
 ## Run all checks
 
-Unless the human chose light checks, *additionally* verify the change by running the *full* test suite and linters. Use the `/pass-all-checks` skill.
+If the human chose the full test suite or the linters, *additionally* verify the change by running them. Use the `/pass-all-checks` skill: it finds every test runner and linter the project has. If the human chose only one of the two, run only that part. With related tests only, run the new tests and the related existing tests once more instead.
 The full test suite is slow. Only run the full test suite *after* possibly related tests (fast) already pass, and after trimming, if you trimmed.
 
 ## Self-review
 
 A review pass will meaningfully improve the quality of your changes, reducing the burden on a human code review to find all faults.
 
-If the human chose full checks, review your work using a sub-agent, using the `/self-review` skill.
+If the human chose the review, review your work using a sub-agent, using the `/self-review` skill.
 
 ## Hand-off to the human
 
