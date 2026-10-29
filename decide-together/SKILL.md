@@ -92,10 +92,11 @@ Print the initial decision table as soon as you start the discussion. Then ask a
 A full table on every turn costs a lot of output and fills the conversation with copies. Print the whole table only:
 
 - in the first message,
-- when decisions are added, split or dropped,
 - after every fourth or fifth settled decision, since the last full table,
 - when the human asks for it,
 - at the end (see "Finishing up").
+
+Decisions that are added, split or dropped are no reason for the whole table, because they happen in almost every turn. Name them in the status line, and put their new rows into the message, as a table with the same columns, e.g. only the rows `1.1` to `1.4`. The human sees the full table at the next scheduled print.
 
 In every other message, start with one status line of what changed and how far you are, e.g. `✅ **2 (xss-protection)** → *2A (sanitize)* · 🤖 **5 (save-notice)** → *5A (saved)* · 💬 **3 (preview)** · 6/12 settled`.
 
