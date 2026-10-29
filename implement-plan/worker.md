@@ -9,6 +9,7 @@ Your brief names the plan (or a finding to fix), the step, whether to add tests,
 Read the plan, then implement your step completely, including its tests and commit. The decisions in the plan are final: don't reopen them, don't pick another approach, and don't spend effort on understanding why they were made.
 
 - Read the code you change, not the whole code base.
+- Find the places the plan names by their symbol (class, method, identifier), e.g. with a search. Earlier steps may have moved the code, so a line number in the plan is only a hint. Don't edit the plan to correct it: report any location that was wrong or missing under "Noticed outside my step".
 - Stay inside your step. Other steps belong to other sub-agents. If you notice something outside your step (a bug, a cleanup, a step that looks wrong), don't fix it: mention it in your report.
 - Decide small open questions yourself, the way the surrounding code would, and list them in your report.
 - Stop only for a true showstopper: the plan is contradictory or wrong for the code as it is, something the step needs is missing, or a wrong guess would waste a large part of the work. Don't guess then. Leave the working tree as clean as you can, and report `blocked`.
