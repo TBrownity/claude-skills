@@ -7,7 +7,7 @@ A personal collection of [Claude Code skills](https://docs.claude.com/en/docs/cl
 | Skill | Description |
 | --- | --- |
 | [decide-together](decide-together/) | Plans a change by walking through the future implementation and settling every decision, edge case and blocker with you before any code is written. The result is a plan an agent can execute without further questions. |
-| [implement-plan](implement-plan/) | Implements an agreed plan autonomously and end to end (tests, trimming, full test run, self-review), and only interrupts for true showstoppers. Sonnet sub-agents write the code step by step, so the session only coordinates. |
+| [implement-plan](implement-plan/) | Implements an agreed plan autonomously and end to end (tests, trimming, full test run, self-review), and only interrupts for true showstoppers. Runs on Sonnet, since the plan already holds the hard decisions. |
 
 ## Installation
 
@@ -54,25 +54,27 @@ Implements a plan on its own, from a feature branch through tests, trimming, a f
 
 Planning and design need the strongest model. Writing the code for a settled plan does not, and it makes up most of the tokens. So the work is split by model:
 
-1. **Plan on Opus.** Run `/decide-together` in a session on Opus. It writes a plan whose steps each stand on their own.
-2. **Implement on Sonnet.** Start a fresh session (`/clear`), switch it to Sonnet with `/model`, and run `/implement-plan <plan>`. That session only coordinates: it asks its questions, hands each plan step to a fresh Sonnet sub-agent (a *worker*, following [worker.md](implement-plan/worker.md)), checks the short report and the working tree, and hands off at the end.
-3. **Escalate and review on Opus.** A step that a Sonnet worker can't finish is retried once by an Opus worker. The self-review runs on Opus, so a stronger model reads everything the cheaper one wrote.
+1. **Plan on Opus.** Run `/decide-together` in a session on Opus. It writes a plan that stands on its own.
+2. **Implement on Sonnet.** Start a fresh session (`/clear`), switch it to Sonnet with `/model`, and run `/implement-plan <plan>`. That session works through the plan step by step, so the discussion from planning isn't carried through every turn.
+3. **Escalate and review on Opus.** A step the Sonnet session can't finish goes to a sub-agent on Opus. The self-review runs on Opus, so a stronger model reads everything the cheaper one wrote.
 
-This saves usage in three ways: the bulk of the work runs on a cheaper model, each worker starts with a clean context instead of carrying all earlier steps through every turn, and the coordinating session only sees reports of a few lines. It relies on the plan: workers follow it literally, so the skill sends vague requirements back to `decide-together` instead of planning on the cheaper model. Trivial steps are done by the coordinating session itself, since a worker's start-up would cost more than it saves.
+The saving comes from the model: the bulk of the work runs on Sonnet. It relies on the plan: the session follows it literally, so the skill sends vague requirements back to `decide-together` instead of planning on the cheaper model.
+
+The steps are not handed to a sub-agent each. They run one after the other and build on each other, so a sub-agent per step would not be faster. Each would read the plan and the same files again, and lose what earlier steps learned about the code, while the context of one session is mostly read from the prompt cache at a fraction of the price.
 
 ### Origin and changes
 
 `implement-plan` started as a copy of [`build-alone`](https://github.com/triskweline/skills/tree/main/skills/build-alone) in [triskweline/skills](https://github.com/triskweline/skills) by Henning Koch, licensed under the MIT License (see [implement-plan/LICENSE](implement-plan/LICENSE)). Changes compared to the original (as of [`ea53bd2`](https://github.com/triskweline/skills/tree/ea53bd2c9ffdc037b7f203b8c86e3094f0fba371/skills/build-alone)):
 
-- Renamed from `build-alone` to `implement-plan`, because the skill no longer builds alone: it coordinates sub-agents, and it works from a plan.
-- Every plan step, and the run of all checks, goes to a fresh Sonnet worker with a short brief (plan path, step, whether to add tests, commit mode). The worker's standing instructions (implement the step, verify with related tests, commit, report) are in `worker.md`, so the coordinating session never loads or retypes them. The worker ends with a report of a few lines in a fixed form, which is all the coordinating session sees of its work.
-- A worker that is blocked, or whose related tests keep failing, is replaced once by an Opus worker that starts from what the first one reported. The self-review sub-agent runs on Opus where the model can be chosen.
-- Vague requirements, or plan steps that a worker couldn't carry out without more context, go back to `/decide-together`. That skill now writes each plan step so an agent can carry it out from the plan alone.
+- Renamed from `build-alone` to `implement-plan`, because the skill works from a plan.
+- Meant to run on Sonnet, while planning runs on Opus. The plan's decisions are final, plan locations are found by symbol rather than line number, and the context is kept lean (only the code that changes is read). After the harness summarizes a long run, the session reads the plan and the git state again.
+- A step whose related tests keep failing goes once to a sub-agent on Opus, with a short brief of what was tried. The self-review sub-agent runs on Opus where the model can be chosen.
+- Vague requirements, or plan steps that can't be carried out without more context, go back to `/decide-together`. That skill now writes each plan step so an agent can carry it out from the plan alone.
 - References to `/agree-on-everything` now point to `/decide-together`. When given a plan from `decide-together`, the skill reads it first.
 - Tests and linters run with quiet output that lists only failures, so their logs don't fill the context for the rest of the run.
 - The skill tracks its progress in Claude Code's task list, one task per plan step plus trimming, checks, self-review and hand-off. Without a task list, it prints a progress line like `▰▰▰▱▱▱ 3/6 Run all checks`.
 - Before it starts, the skill asks four questions in one dialog: which checks to do (any of adding tests, running all linters and a self-review, picked independently), whether to run the full test suite at the end or only the new tests and the existing tests related to the change, whether to trim, and how to commit (per task, per logical change, in a single commit, or not at all; each option previews the commits it would create; without commits, the preview refers to the per-logical-change one). For the checks and the test run, it recommends by the size of the change. Each recommendation states its strength: `(Strongly recommended)`, `(Recommended)` or `(Weakly recommended)`. Steps left out are skipped for the rest of the run.
-- By default, the commits are made as the run goes, one commit per task, as soon as the task's tests pass. With one commit per logical change, refactorings, unrelated fixes, formatting and dependency upgrades are kept apart, and later fixes from trimming and self-review are split by topic instead of landing in one big commit. Without commits, it proposes the split at the hand-off. The workers make the commits.
+- By default, the commits are made as the run goes, one commit per task, as soon as the task's tests pass. With one commit per logical change, refactorings, unrelated fixes, formatting and dependency upgrades are kept apart, and later fixes from trimming and self-review are split by topic instead of landing in one big commit. Without commits, it proposes the split at the hand-off.
 
 The skill also uses these skills from triskweline/skills, which are not part of this repository: `/work-in-branch`, `/trim-code`, `/pass-all-checks` and `/self-review`. If one is missing, `implement-plan` says so in one line and does that step itself.
 
