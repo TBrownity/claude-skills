@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: github-issue-by-number
+expected_outcome: |
+  "#12" is recognized as a GitHub issue of the current repository, not a Linear one. The run prints the banner
+  "Implementing Issue #12" first, reads the issue with its comments, and works on a branch named
+  12-<short-slug>. `list --status` filters by one or several comma-separated statuses, and an unknown status
+  fails with a message naming the valid ones, as the comments ask. Tests and linters pass, the change is reviewed,
+  the branch is pushed, nothing is changed in Linear, and PR.md has "Closes #12", the acceptance criteria and the
+  review findings, with no "(#12)" in the title.
+context:
+  scaffold_script: place-files.sh

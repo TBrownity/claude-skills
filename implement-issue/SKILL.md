@@ -1,41 +1,77 @@
 ---
 name: implement-issue
-description: Implement a Linear issue end to end from just its identifier (e.g. ENG-123) or link, and leave a GitHub pull request that only needs a human to read it and click merge. Fetches the issue with its comments, images and related issues from Linear, implements it as readable, well-structured code with tests, reviews the change with /merge-request-review in an independent sub-agent, fixes the findings, and opens the pull request with a description of what was built and what the review fixed. Use whenever the user names a Linear issue (an identifier like ABC-123 or a linear.app link) and wants it implemented, built, fixed, worked on or turned into a pull request, e.g. "implement ENG-123", "pick up LIN-42", "setz ENG-123 um", "mach einen PR für ENG-123", even if they don't say "Linear".
+description: Implement an issue end to end from just its identifier or link, whether it lives in Linear (ENG-123, a linear.app link) or on GitHub (#42, owner/repo#42, a github.com issue link), and leave a GitHub pull request that only needs a human to read it and click merge. Works out where the issue lives, fetches it with its comments and images, implements it as readable, well-structured code with tests, reviews the change with /merge-request-review in an independent sub-agent, fixes the findings, and opens the pull request with a description of what was built and what the review fixed. Use whenever the user names an issue and wants it implemented, built, fixed, worked on or turned into a pull request, e.g. "implement ENG-123", "pick up #42", "work on issue 42", "setz ENG-123 um", "mach einen PR für #42", even if they don't say where the issue lives.
 ---
 
 # Implement issue
 
-You get a Linear issue identifier and deliver a pull request on GitHub. The human's only remaining job is to read the pull request and click merge. So everything a reviewer would otherwise have to do (check the requirements, catch bugs, make the code readable, explain the change) happens here, before the pull request exists.
+You get an issue, from Linear or from GitHub, and deliver a pull request on GitHub. The human's only remaining job is to read the pull request and click merge. So everything a reviewer would otherwise have to do (check the requirements, catch bugs, make the code readable, explain the change) happens here, before the pull request exists.
 
 The run has one short window at the start where you may ask the human questions. After that, they are away until the pull request is ready.
 
+## Announce the run
+
+Before anything else, even before your first tool call, print this banner with the identifier as the human gave it (`ENG-123`, `#42`, `acme/shop#42`):
+
+```text
+#----------------------------------------------------#
+              Implementing Issue ENG-123
+#----------------------------------------------------#
+```
+
+Put it in a code block, since the terminal renders your messages as Markdown and would drop the leading spaces otherwise. Center the middle line under the 54 characters of the rule: indent it by (54 − its length) / 2 spaces, rounded down, e.g. 14 for `Implementing Issue ENG-123` and 16 for `Implementing Issue #42`. When several sessions run side by side, the banner shows at a glance which issue this one is working on. If the human gave no identifier, ask for it first, then print the banner.
+
 ## The run at a glance
 
-1. Fetch the issue from Linear and turn it into a list of acceptance criteria.
+1. Work out where the issue lives, fetch it, and turn it into a list of acceptance criteria.
 2. Check the starting point: repository, working tree, tools.
 3. Ask the open questions, all in one dialog, or start right away if nothing is open.
-4. Create the branch and set the issue to In Progress.
+4. Create the branch, and for a Linear issue set it to In Progress.
 5. Implement, with tests, committing as you go.
 6. Run all tests and linters.
 7. Review the change with `/merge-request-review` in an independent sub-agent, and fix what it finds.
 8. Open the pull request.
-9. Set the issue to In Review, link the pull request, and hand off.
+9. For a Linear issue, set it to In Review and link the pull request. Then hand off.
 
 Track the run in a task list (in Claude Code: `TaskCreate` and `TaskUpdate`, or `TodoWrite`), with step 5 split into one task per larger part of the issue, so the human sees at a glance how far you are if they look in. Keep one task in progress at a time, and mark it done as soon as it's finished.
 
 ## 1. Fetch the issue
 
-The argument is an identifier like `ENG-123`, or a Linear link like `https://linear.app/acme/issue/ENG-123/add-csv-export`, from which you take the identifier. Without either, ask for it.
+### Where the issue lives
+
+Work it out from what the human gave you:
+
+| The human gives | Source | Identifier to use |
+| --- | --- | --- |
+| A Linear link, `https://linear.app/<workspace>/issue/ENG-123/…` | Linear | `ENG-123` |
+| A GitHub link, `https://github.com/<owner>/<repo>/issues/42` | GitHub | `#42`, or `owner/repo#42` if that isn't the current repository |
+| `owner/repo#42` | GitHub | `owner/repo#42` |
+| `#42`, `42` or "issue 42" | GitHub, in the current repository | `#42` |
+| A team key and a number, like `ENG-123` | Linear | `ENG-123` |
+
+A key and a number can also belong to another tracker, like Jira. If Linear doesn't know the issue and another tracker is connected, look there, and handle it like a Linear issue with that tracker's tools. If you still can't tell where the issue lives, ask in one line.
+
+The pull request goes to the repository you are working in. A GitHub issue from another repository is fine (some teams keep their issues in one repository for several code repositories), but then refer to it in full, as `owner/repo#42`, everywhere.
+
+### Linear
 
 Use the Linear tools (the Linear MCP server):
 
 - `get_issue` with `includeRelations: true`: title, description, status, team, labels, attachments, `gitBranchName`, the parent and the blocking and related issues.
-- `list_comments` for the discussion, which `get_issue` doesn't include. Later comments often refine or overrule the description, so read all of them.
-- `extract_images` on the description and on comments that contain images: screenshots and mockups often carry requirements the text doesn't spell out.
+- `list_comments` for the discussion, which `get_issue` doesn't include.
+- `extract_images` on the description and on comments that contain images.
 - `get_attachment` for attached files that matter for the task, like a spec or sample data.
 - The parent issue, if there is one, for context: its title and description are enough.
 
-If the Linear tools are missing, say so in one line and ask the human to connect Linear or to paste the issue. Don't implement from the title alone.
+### GitHub
+
+Use `gh issue view <number> --repo <owner>/<repo> --json number,title,body,labels,state,comments,url`, which includes the comments, or the GitHub MCP tool `issue_read`, for the issue and for its comments. Look at the images in the body and in the comments where your tools can open them. Note sub-issues and pull requests that already mention the issue: they matter for scope and for an earlier attempt (step 2).
+
+### Then, for either source
+
+Read every comment: later comments often refine or overrule the description. Screenshots and mockups often carry requirements the text doesn't spell out.
+
+If the tools for the source are missing (Linear not connected; neither `gh` nor the GitHub MCP tools for a GitHub issue), say so in one line and ask the human to connect them or to paste the issue. Don't implement from the title alone.
 
 Then write down the acceptance criteria as a numbered list (`AC1`, `AC2`, …): the explicit ones (a checklist, an "Acceptance criteria" section) and the ones the description, comments and images imply. Where a comment changes the description, the comment wins. This list is your yardstick: every criterion ends up in the code and in a test, and the pull request reports on each one.
 
@@ -47,7 +83,7 @@ Before anything changes, check what could make the run fail halfway, so you can 
 
 - **Working tree:** `git status --short`. Uncommitted changes belong to the human: never stash, reset or discard them yourself. Ask what to do with them.
 - **Base branch:** the remote's default branch (`git rev-parse --abbrev-ref origin/HEAD`, else `main` or `master`), unless the project's docs name another target for pull requests, like `develop`. Fetch it, so you start from its latest state.
-- **An existing branch for this issue**, locally or on the remote, under Linear's branch name: that is an earlier attempt. Ask whether to continue on it or to start fresh.
+- **An earlier attempt:** a branch for this issue, locally or on the remote, under the name from step 4, or an open pull request that already refers to the issue. Ask whether to continue on it or to start fresh.
 - **GitHub:** the remote must be on GitHub, and you need a way to open a pull request: the `gh` CLI (`gh auth status`) or the GitHub MCP tools (`create_pull_request`). If neither works, ask now.
 - **Conventions:** read CLAUDE.md, AGENTS.md, CONTRIBUTING.md and the README, if present, for code style, structure and the commands for tests and linters. The CI configuration (e.g. `.github/workflows/`) shows which checks a pull request must pass.
 - **The review skill:** `merge-request-review`, possibly listed with a prefix like `anthropic-skills:merge-request-review`. If it's missing, say so in one line and go on: the review sub-agent then reviews by the same criteria without it (see step 7).
@@ -62,20 +98,24 @@ A question is worth asking when a wrong guess would mean redoing a large part of
 - The description and the comments contradict each other, and no later comment clearly settles it.
 - A core acceptance criterion is missing, e.g. what happens on an error the feature will clearly run into.
 - The scope is unclear: the issue has open sub-issues (implement them too, or only this one?), or it is blocked by an open issue.
-- Anything from step 2: uncommitted changes, an existing branch, no way to open a pull request.
+- Anything from step 2: uncommitted changes, an earlier attempt, no way to open a pull request.
 
 Decide everything else yourself, the way the surrounding code does it: names, file layout, internal structure, small details. Note these decisions for the pull request.
 
-Ask all questions in one dialog (in Claude Code: `AskUserQuestion`, with up to four questions; a second dialog right after only if more remain). Put the option you recommend first and mark it `(Recommended)`, so the human can agree quickly. If nothing is open, don't ask: say in one line that the issue is clear, and start.
+Ask all questions in one dialog (in Claude Code: `AskUserQuestion`, with up to four questions; a second dialog right after only if more remain). Put the option you recommend first and mark it `(Recommended)`, so the human can agree quickly. Where the issue doesn't ask to change existing data or behavior, recommend the option that leaves it as it is. A new pricing rule, for example, applies to new invoices, not to invoices that were already sent or paid: that is the safer default, and the human can still widen it. If nothing is open, don't ask: say in one line that the issue is clear, and start.
 
-Running this skill is the human's request to push a branch, open a pull request and update the issue's status. Don't ask for that again.
+Running this skill is the human's request to push a branch, open a pull request and, for a Linear issue, update its status. Don't ask for that again.
 
 After this window the human is away. Decide new questions yourself and note them for the pull request. Interrupt only for a true showstopper: something that makes the issue impossible as written, or a wrong guess that would throw away most of the work.
 
 ## 4. Start
 
-- Create the branch from the latest base branch, named with Linear's `gitBranchName` (e.g. `tim/eng-123-add-csv-export`). Linear's GitHub integration links branch and pull request to the issue by this name. Without it, use `<identifier in lowercase>-<short-slug>`.
-- Set the issue to the team's "In Progress" status. Teams name their statuses differently, so look the name up with `list_issue_statuses` for the issue's team, then set it with `save_issue` and `state`. If the issue is already in that status or further along, leave it.
+Create the branch from the latest base branch:
+
+- **Linear:** named with the issue's `gitBranchName` (e.g. `tim/eng-123-add-csv-export`). Linear's GitHub integration links branch and pull request to the issue by this name. Without it, use `<identifier in lowercase>-<short-slug>`.
+- **GitHub:** named `<number>-<short-slug>` after the issue's title (e.g. `42-export-invoices-as-csv`), the name GitHub's own "Create a branch" button would suggest.
+
+For a Linear issue, set it to the team's "In Progress" status. Teams name their statuses differently, so look the name up with `list_issue_statuses` for the issue's team, then set it with `save_issue` and `state`. If the issue is already in that status or further along, leave it. A GitHub issue has no status to set; leave its labels, assignees and projects as they are.
 
 ## 5. Implement
 
@@ -123,13 +163,15 @@ If a test fails that your change can't plausibly affect, check whether it fails 
 
 The review runs in an independent worker: a fresh sub-agent (in Claude Code: the `Agent` tool with the `general-purpose` agent), never in this session. You wrote the code, so you read it the way you meant it, and you read the issue the way you understood it. A worker that starts from nothing sees the change the way the human will see it, and checks it against the issue itself, not against your reading of it.
 
-So keep your own view out of the brief: no AC list, no summary of what you built, no explanation of why. The worker gets the issue from Linear itself and the change from git. Give it this brief:
+So keep your own view out of the brief: no AC list, no summary of what you built, no explanation of why. The worker gets the issue from its source itself and the change from git. Give it this brief, with the line on reading the issue that fits the source:
 
 ```text
 Review the current branch against origin/<base branch> with the merge-request-review skill.
-The branch implements Linear issue <identifier>. Read the issue yourself with the Linear
-tools (get_issue, and list_comments for the discussion, since later comments can change
-the requirements), and review the change against it.
+The branch implements <Linear issue ENG-123 | GitHub issue owner/repo#42>. Read the issue
+yourself, with all its comments, since later comments can change the requirements:
+<Linear: with the Linear tools, get_issue and list_comments |
+ GitHub: gh issue view 42 --repo owner/repo --comments, or the GitHub MCP tool issue_read>
+Then review the change against it.
 In addition to the skill's own checks, report as issues:
 - a requirement of the issue that the change doesn't meet, or that no test covers,
 - names or structure a reader new to the code can't follow,
@@ -153,7 +195,9 @@ After the fixes, run the related tests again, and the full suite and linters if 
 
 Push the branch (`git push -u origin <branch>`) and open the pull request against the base branch, ready for review rather than as a draft: the human should be able to merge it as it is. Use `gh pr create --base <base branch> --title "<title>" --body-file <file>`, or the GitHub MCP tool `create_pull_request`.
 
-**Title:** in the project's style for pull requests; without one, the identifier and a short summary, e.g. `ENG-123: Export invoices as CSV`.
+**Title:** in the project's style for pull requests. Without one, a short summary, for a Linear issue with the identifier in front: `ENG-123: Export invoices as CSV`. For a GitHub issue the summary alone is enough, since the closing reference links the issue, and a `(#42)` in the title would be mistaken for the pull request's own number.
+
+**Closing reference:** `Closes ENG-123` for Linear, `Closes #42` for a GitHub issue in the same repository, `Closes owner/repo#42` for one in another. Linear or GitHub then links the pull request to the issue and closes the issue when the pull request is merged.
 
 **Language:** the one the team uses in the repository, as its recent pull requests or commits show; if that is unclear, the language of the issue.
 
@@ -162,7 +206,7 @@ Push the branch (`git push -u origin <branch>`) and open the pull request agains
 ```markdown
 <Two or three sentences: what changes, for whom, and why.>
 
-Closes ENG-123
+<Closing reference, e.g. Closes ENG-123 or Closes #42>
 
 ## Changes
 - <what was implemented, grouped by area, with the main files>
@@ -188,14 +232,18 @@ Not fixed: <finding> — <why>.
 - <what you noticed outside the issue; files that want splitting; pre-existing test failures; checks that couldn't run locally>
 ```
 
-If the review found nothing, the *Review* section says "`/merge-request-review` found no significant issues." `Closes ENG-123` lets Linear close the issue when the pull request is merged.
+If the review found nothing, the *Review* section says "`/merge-request-review` found no significant issues."
 
 If the repository runs CI on pull requests and you can follow it (e.g. `gh pr checks <number> --watch`), wait for the result and fix the failures your change caused, with new commits. A pull request with red checks isn't ready to merge. If you can't follow CI, say so in the hand-off.
 
-## 9. Update Linear and hand off
+## 9. Update the issue and hand off
 
-- Set the issue to the team's "In Review" status, if the team has one. Linear's GitHub integration may have done this already.
-- Link the pull request to the issue with `save_issue` and `links: [{url, title}]`, unless `get_issue` already lists it among the attachments.
+For a Linear issue:
+
+- Set it to the team's "In Review" status, if the team has one. Linear's GitHub integration may have done this already.
+- Link the pull request to it with `save_issue` and `links: [{url, title}]`, unless `get_issue` already lists it among the attachments.
+
+A GitHub issue needs nothing more: the closing reference already shows the pull request on the issue.
 
 End with a short message:
 
