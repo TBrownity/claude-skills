@@ -1,0 +1,22 @@
+{
+  "id": "INV-110",
+  "identifier": "INV-110",
+  "title": "Show the payment date in the invoice list",
+  "url": "https://linear.app/example/issue/INV-110/show-the-payment-date-in-the-invoice-list",
+  "gitBranchName": "dev/inv-110-show-the-payment-date-in-the-invoice-list",
+  "status": "Todo",
+  "statusType": "unstarted",
+  "priority": 3,
+  "team": {"key": "INV", "name": "Invoicing"},
+  "labels": ["Feature"],
+  "assignee": "Dev Example",
+  "parentId": null,
+  "attachments": [],
+  "relations": {
+    "blocks": [],
+    "blockedBy": [{"identifier": "INV-98", "title": "Record the payment date of invoices"}],
+    "related": [],
+    "duplicateOf": null
+  },
+  "description": "Accounting wants to see when an invoice was paid without opening the data file.\n\n## Acceptance criteria\n\n- [ ] `python -m invoicing list` shows the payment date (YYYY-MM-DD) for paid invoices\n- [ ] Unpaid invoices show `-` in that column\n- [ ] The JSON export includes the payment date as `paid_on` (null when unpaid)"
+}

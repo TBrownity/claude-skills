@@ -1,0 +1,4 @@
+{"comments": [
+  {"author": "Mia Schulz", "createdAt": "2026-11-05T09:10:00Z",
+   "body": "Started on this. The data migration for the existing paid invoices is the tricky part; I expect a PR by the end of next week."}
+]}

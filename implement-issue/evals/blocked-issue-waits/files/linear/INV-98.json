@@ -1,0 +1,17 @@
+{
+  "id": "INV-98",
+  "identifier": "INV-98",
+  "title": "Record the payment date of invoices",
+  "url": "https://linear.app/example/issue/INV-98/record-the-payment-date-of-invoices",
+  "gitBranchName": "mia/inv-98-record-the-payment-date-of-invoices",
+  "status": "In Progress",
+  "statusType": "started",
+  "priority": 2,
+  "team": {"key": "INV", "name": "Invoicing"},
+  "labels": ["Feature"],
+  "assignee": "Mia Schulz",
+  "parentId": null,
+  "attachments": [],
+  "relations": {"blocks": [{"identifier": "INV-110", "title": "Show the payment date in the invoice list"}], "blockedBy": [], "related": [], "duplicateOf": null},
+  "description": "Store the date an invoice was paid: a `paid_on` field on invoices, in the data file and in the model, set when an invoice is marked as paid. Existing paid invoices get their payment date from the bank export (see attachment in the team drive)."
+}
