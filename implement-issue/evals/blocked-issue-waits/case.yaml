@@ -1,7 +1,8 @@
 schema_version: "1.1"
 name: blocked-issue-waits
 expected_outcome: |
-  INV-110 is blocked by INV-98, which adds the payment date it needs and is still In Progress with someone else.
+  INV-110 is blocked by INV-98 (only through its Linear relation, no comment mentions it), which adds the payment
+  date it needs and is still In Progress with someone else.
   The run notices this before doing any work, prints no "Implementing Issue" banner, and changes nothing: no
   branch, no commit, no push, no Linear status change. It tells the user which issue blocks INV-110 and its status,
   and asks whether to wait for INV-98 or go ahead anyway, recommending to wait; with no answer it waits.

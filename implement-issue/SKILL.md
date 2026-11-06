@@ -72,7 +72,7 @@ If the issue is blocked, don't start: no branch, no status change. Tell the huma
 
 ### Announce the run
 
-Once you know you can work on the issue, print this banner with the identifier as the human gave it (`ENG-123`, `#42`, `acme/shop#42`):
+Once you know you can work on the issue, and before your next tool call, print this banner with the identifier as the human gave it (`ENG-123`, `#42`, `acme/shop#42`). Print it as a message of its own in your reply, not only in your thinking, a file or a tool call, and print it even if nobody seems to be watching: the human may look in at any time, and a run without the banner looks as if it never started.
 
 ```text
 #----------------------------------------------------#
