@@ -1,0 +1,17 @@
+{
+  "id": "LIB-202",
+  "identifier": "LIB-202",
+  "title": "Send reminder emails for overdue loans",
+  "url": "https://linear.app/example/issue/LIB-202/send-reminder-emails-for-overdue-loans",
+  "gitBranchName": "dev/lib-202-send-reminder-emails-for-overdue-loans",
+  "status": "Todo",
+  "statusType": "unstarted",
+  "priority": 2,
+  "team": {"key": "LIB", "name": "Library"},
+  "labels": ["Feature"],
+  "assignee": "Dev Example",
+  "parentId": null,
+  "attachments": [],
+  "relations": {"blocks": [], "blockedBy": [], "related": [], "duplicateOf": null},
+  "description": "Members keep forgetting to return their books. We want to remind them by email.\n\n## Acceptance criteria\n\n- [ ] `node src/cli.js send-reminders` sends one reminder email for every overdue loan, through the mailer in `src/mailer.js`\n- [ ] The email goes to the member's address and names the book title, the due date and the fine so far\n- [ ] A loan gets at most one reminder per 7 days, so running the command daily doesn't spam anyone (remember when the last reminder was sent on the loan)\n- [ ] The command prints how many reminders it sent\n- [ ] Suspended members get reminders too"
+}

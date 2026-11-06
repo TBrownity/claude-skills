@@ -1,0 +1,17 @@
+{
+  "id": "INV-101",
+  "identifier": "INV-101",
+  "title": "Export invoices as CSV",
+  "url": "https://linear.app/example/issue/INV-101/export-invoices-as-csv",
+  "gitBranchName": "dev/inv-101-export-invoices-as-csv",
+  "status": "Todo",
+  "statusType": "unstarted",
+  "priority": 3,
+  "team": {"key": "INV", "name": "Invoicing"},
+  "labels": ["Feature"],
+  "assignee": "Dev Example",
+  "parentId": null,
+  "attachments": [],
+  "relations": {"blocks": [], "blockedBy": [], "related": [], "duplicateOf": null},
+  "description": "Accounting wants to import our invoices into their bookkeeping tool. We already have a JSON export (`python -m invoicing export --format json`); please add CSV as a second format.\n\n## Acceptance criteria\n\n- [ ] `python -m invoicing export --format csv --output <file>` writes all invoices as CSV\n- [ ] One row per invoice with the columns: invoice number, customer name, issue date, due date, total, status\n- [ ] A header row with these column names\n- [ ] Dates in ISO format (YYYY-MM-DD), totals with exactly two decimals\n- [ ] With no invoices, the file contains only the header row\n- [ ] The JSON export keeps working unchanged"
+}

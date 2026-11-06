@@ -1,0 +1,4 @@
+Add loans, fines and reservations|package.json eslint.config.js .gitignore src/store.js src/loanService.js test/fixtures.js test/loanService.test.js data
+Add command line interface|src/cli.js test/cli.test.js
+Add outbox mailer as stand-in for real emails|src/mailer.js
+Add CI workflow and README|*

@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: reminders-avoid-growing-large-file
+expected_outcome: |
+  On the branch dev/lib-202-send-reminder-emails-for-overdue-loans, the reminder logic lives in a new, focused module
+  rather than in the already large src/loanService.js, reusing findOverdueLoans and calculateFine instead of duplicating
+  them. A send-reminders CLI command sends one mail per overdue loan through the mailer, records lastReminderAt and skips
+  loans reminded within 7 days, includes suspended members and prints the count. Tests cover the criteria, tests and lint
+  pass, the change is reviewed and fixes are applied, the branch is pushed, and PR.md reports changes, criteria, review
+  findings and Closes LIB-202, and suggests splitting loanService.js in its notes.
+context:
+  scaffold_script: place-files.sh

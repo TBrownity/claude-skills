@@ -1,0 +1,17 @@
+{
+  "id": "INV-303",
+  "identifier": "INV-303",
+  "title": "Discount for loyal customers",
+  "url": "https://linear.app/example/issue/INV-303/discount-for-loyal-customers",
+  "gitBranchName": "dev/inv-303-discount-for-loyal-customers",
+  "status": "Todo",
+  "statusType": "unstarted",
+  "priority": 2,
+  "team": {"key": "INV", "name": "Invoicing"},
+  "labels": ["Feature"],
+  "assignee": "Dev Example",
+  "parentId": null,
+  "attachments": [],
+  "relations": {"blocks": [], "blockedBy": [], "related": [], "duplicateOf": null},
+  "description": "Loyal customers should automatically get a discount on their invoices. The discount should be visible on the invoice, both in `python -m invoicing list` and in the JSON export.\n\nTalk to Mia from Sales for the details."
+}

@@ -1,0 +1,14 @@
+{
+  "name": "library-loans",
+  "version": "1.4.0",
+  "private": true,
+  "description": "Loans, reservations and fines for the town library",
+  "main": "src/cli.js",
+  "scripts": {
+    "test": "node --test",
+    "lint": "eslint ."
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

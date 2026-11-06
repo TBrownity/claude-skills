@@ -1,0 +1,29 @@
+{
+  "members": [
+    { "id": "m1", "name": "Lena Hoffmann", "email": "lena.hoffmann@example.org", "joinedAt": "2023-02-11", "suspended": false },
+    { "id": "m2", "name": "Karim Aydin", "email": "karim.aydin@example.org", "joinedAt": "2024-06-30", "suspended": false },
+    { "id": "m3", "name": "Sophie Krüger", "email": "sophie.krueger@example.org", "joinedAt": "2025-01-05", "suspended": false },
+    { "id": "m4", "name": "Paul Wagner", "email": "paul.wagner@example.org", "joinedAt": "2025-09-19", "suspended": false }
+  ],
+  "books": [
+    { "id": "b1", "title": "Der Process", "author": "Franz Kafka", "isbn": "9783150096767", "retired": false },
+    { "id": "b2", "title": "Momo", "author": "Michael Ende", "isbn": "9783522202107", "retired": false },
+    { "id": "b3", "title": "Tschick", "author": "Wolfgang Herrndorf", "isbn": "9783499256356", "retired": false },
+    { "id": "b4", "title": "Die Vermessung der Welt", "author": "Daniel Kehlmann", "isbn": "9783499241000", "retired": false },
+    { "id": "b5", "title": "Unterleuten", "author": "Juli Zeh", "isbn": "9783630874876", "retired": false },
+    { "id": "b6", "title": "Krabat", "author": "Otfried Preußler", "isbn": "9783522202602", "retired": false }
+  ],
+  "loans": [
+    { "id": "l1", "memberId": "m1", "bookId": "b1", "borrowedAt": "2026-09-01", "dueDate": "2026-09-22", "renewals": 0, "returnedAt": "2026-09-20", "fineCents": 0 },
+    { "id": "l2", "memberId": "m1", "bookId": "b2", "borrowedAt": "2026-10-01", "dueDate": "2026-10-22", "renewals": 0, "returnedAt": null },
+    { "id": "l3", "memberId": "m2", "bookId": "b3", "borrowedAt": "2026-09-10", "dueDate": "2026-10-22", "renewals": 1, "returnedAt": null },
+    { "id": "l4", "memberId": "m3", "bookId": "b4", "borrowedAt": "2026-10-20", "dueDate": "2026-11-10", "renewals": 0, "returnedAt": null },
+    { "id": "l5", "memberId": "m4", "bookId": "b5", "borrowedAt": "2026-08-01", "dueDate": "2026-08-22", "renewals": 0, "returnedAt": null }
+  ],
+  "reservations": [
+    { "id": "r1", "memberId": "m3", "bookId": "b3", "reservedAt": "2026-10-15", "readySince": null, "fulfilledAt": null, "cancelledAt": null }
+  ],
+  "payments": [
+    { "id": "p1", "memberId": "m4", "amountCents": 500, "paidAt": "2026-09-30" }
+  ]
+}

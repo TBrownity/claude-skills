@@ -1,0 +1,6 @@
+{"comments": [
+  {"author": "Anna Weber (Accounting)", "createdAt": "2026-11-03T09:12:00Z",
+   "body": "Could we use a semicolon as the separator instead of a comma? Our bookkeeping tool expects `;`, and several customer names contain commas."},
+  {"author": "Dev Example", "createdAt": "2026-11-03T10:40:00Z",
+   "body": "Yes, let's use semicolons. And please make sure customer names with quotes (we have `Bäckerei \"Zum Korn\"`) don't break the file."}
+]}

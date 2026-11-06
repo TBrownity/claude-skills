@@ -1,0 +1,4 @@
+{"comments": [
+  {"author": "Dev Example", "createdAt": "2026-11-04T16:20:00Z",
+   "body": "The overdue logic and the fine calculation already exist in `src/loanService.js` (`findOverdueLoans`, `calculateFine`). Please reuse them instead of writing them again."}
+]}
