@@ -8,6 +8,7 @@ A personal collection of [Claude Code skills](https://docs.claude.com/en/docs/cl
 | --- | --- |
 | [decide-together](decide-together/) | Plans a change by walking through the future implementation and settling every decision, edge case and blocker with you before any code is written. The result is a plan an agent can execute without further questions. |
 | [implement-plan](implement-plan/) | Implements an agreed plan autonomously and end to end (tests, trimming, full test run, self-review), and only interrupts for true showstoppers. Runs on Sonnet, since the plan already holds the hard decisions. |
+| [implement-issue](implement-issue/) | Implements a Linear or GitHub issue from just its identifier, reviews the change with `/merge-request-review` in an independent sub-agent, fixes the findings and opens a pull request that only needs to be read and merged. |
 
 ## Installation
 
@@ -16,7 +17,7 @@ On Windows, link the skill folders into your personal skills folder with PowerSh
 ```powershell
 $skills = "$env:USERPROFILE\.claude\skills"
 New-Item -ItemType Directory -Force $skills | Out-Null
-foreach ($skill in "decide-together", "implement-plan") {
+foreach ($skill in "decide-together", "implement-plan", "implement-issue") {
     New-Item -ItemType Junction -Path "$skills\$skill" -Target "$PWD\$skill"
 }
 ```
@@ -77,6 +78,32 @@ The steps are not handed to a sub-agent each. They run one after the other and b
 - By default, the commits are made as the run goes, one commit per task, as soon as the task's tests pass. With one commit per logical change, refactorings, unrelated fixes, formatting and dependency upgrades are kept apart, and later fixes from trimming and self-review are split by topic instead of landing in one big commit. Without commits, it proposes the split at the hand-off.
 
 The skill also uses these skills from triskweline/skills, which are not part of this repository: `/work-in-branch`, `/trim-code`, `/pass-all-checks` and `/self-review`. If one is missing, `implement-plan` says so in one line and does that step itself.
+
+## implement-issue
+
+Implements an issue from Linear or GitHub end to end and opens a pull request on GitHub that only needs to be read and merged. Start it with the issue's identifier or link, e.g. `/implement-issue ENG-123`, `/implement-issue #42` or `/implement-issue https://github.com/owner/repo/issues/42`.
+
+The skill:
+
+- Works out from the identifier where the issue lives: `ENG-123` or a linear.app link is a Linear issue, and `#42`, `owner/repo#42` or a github.com link is a GitHub issue.
+- Fetches the issue with its comments, images and related issues, and checks that it can be worked on: it exists, is still open, isn't blocked by an open issue and isn't taken by someone else. A blocked issue isn't started: the skill names the blocker and asks whether to wait.
+- Only then prints a banner with the issue's identifier, so parallel sessions are easy to tell apart:
+
+  ```text
+  #----------------------------------------------------#
+                Implementing Issue ENG-123
+  #----------------------------------------------------#
+  ```
+
+- Asks all open questions in one dialog at the start and works on its own after that. Where the issue doesn't ask to change existing data or behavior, it recommends the option that leaves them as they are.
+- Implements the issue with tests, in readable code that is split into focused files and follows the project's conventions. An existing file that is already too large isn't restructured: new logic goes into a new unit, and the pull request suggests the split.
+- Reviews the change with `/merge-request-review` in an independent sub-agent, which reads the issue itself instead of the implementer's summary of it, and fixes the findings.
+- Opens a pull request ready for review. Its description lists the changes, each acceptance criterion with its code and test, the review findings and how they were fixed, and the decisions to check. `Closes ENG-123` or `Closes #42` closes the issue on merge.
+- For a Linear issue, uses Linear's branch name, sets the issue to In Progress at the start and to In Review at the end, and links the pull request. A GitHub issue gets a branch named like `42-short-description` and is otherwise left as it is.
+
+It needs the Linear MCP server for Linear issues, the `gh` CLI or the GitHub MCP tools for GitHub, and the `merge-request-review` skill. If the review skill is missing, the sub-agent reviews by the same criteria without it.
+
+The folder [implement-issue/evals](implement-issue/evals/) holds five test cases with simulated Linear and GitHub data: a clear issue whose comments change the requirements, a change next to an oversized file, an issue with contradicting requirements, a GitHub issue given by number, and a blocked issue. They use the layout that `claude plugin eval` reads.
 
 ## License
 
