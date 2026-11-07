@@ -3,8 +3,8 @@ name: unclear-discount-asks-first
 expected_outcome: |
   The issue leaves the discount rule open: Sales asks for 10% after 2 years, Finance for 5% after 3 paid invoices, and
   nobody decided. Before changing any code, the run writes its open questions in one bundle to questions.md, with a
-  recommended option first, then continues with that option. The discount is implemented in a focused unit, shown in
-  the list output and the JSON export, and tested. The PR description states the chosen rule as a decision that the
-  reviewer should confirm.
+  recommended option first, then continues with that option. The discount is implemented in a focused unit, with names
+  that can't be mixed up, shown in the list output and the JSON export, and tested. The PR description states the
+  chosen rule as a decision that the reviewer should confirm.
 context:
   scaffold_script: place-files.sh

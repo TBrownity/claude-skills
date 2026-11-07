@@ -142,9 +142,12 @@ The pull request is the only thing the human reads, and they should understand i
 
 **Readable for a person new to the code:**
 
-- Names say what a thing is or does, in the words of the issue's domain: `overdueInvoices`, `sendReminderEmail`, not `data`, `list2`, `handle` or `tmp`. Booleans read as a question: `isExpired`, `hasAccess`. No abbreviations a newcomer would have to guess.
+- Names say what a thing is or does, in the words of the issue's domain: `overdueInvoices`, `sendReminderEmail`, not `data`, `list2`, `handle` or `tmp`. No abbreviations a newcomer would have to guess. A name also differs from the names next to it:
+  - A function doesn't sound like a type, nor like another function.
+  - A getter says that it reads (`get`), a setter that it changes (`set`). Booleans read as a question: `isExpired`, `hasAccess`.
+  - The same words in another order are a warning sign. Nobody can tell the struct `uf_effective_settings` from the function `uf_settings_effective`; call the function `uf_settings_get_effective`.
 - A function does one thing, and its name says which. Prefer early returns over deep nesting, and plain steps over clever one-liners.
-- Comments explain why, where the code can't say it itself. No commented-out code, no leftover debug output.
+- Comments explain why, where the code can't say it itself. No commented-out code, no leftover debug output. No IDs of architecture decisions from the spec or from Linear, like `[24A]` or `decision [17A+] of the spec`: they belong in Linear, and the code only describes the finished behavior. References to the repository's own decision records, like `docs/decisions.md`, are fine where the project already uses them.
 
 **Structured in sensible parts:**
 
@@ -190,6 +193,9 @@ Then review the change against it.
 In addition to the skill's own checks, report as issues:
 - a requirement of the issue that the change doesn't meet, or that no test covers,
 - names or structure a reader new to the code can't follow,
+- names a reader can mix up with the names next to them (a function and a type, a getter
+  and a setter),
+- comments that cite decision IDs from the spec or from Linear,
 - new files or functions that are too large for one responsibility.
 Don't change any files. Return the review in the skill's output format.
 ```

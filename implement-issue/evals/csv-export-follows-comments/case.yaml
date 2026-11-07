@@ -2,8 +2,9 @@ schema_version: "1.1"
 name: csv-export-follows-comments
 expected_outcome: |
   The issue is clear, so no questions are asked. On the branch dev/inv-101-export-invoices-as-csv, a CSV export is added
-  in its own module and wired into the existing export command. It uses semicolons as the comments ask, quotes names
-  with commas and quotes correctly, writes ISO dates and two-decimal totals, and writes only the header without invoices.
+  in its own module and wired into the existing export command. It uses semicolons as the comments ask, without citing
+  their decision ID [24A] in the code, quotes names with commas and quotes correctly, writes ISO dates and two-decimal
+  totals, and writes only the header without invoices.
   Tests cover every acceptance criterion and all tests and linters pass. The change is reviewed, findings are fixed, the
   branch is pushed, and PR.md describes the change, the acceptance criteria, the review findings and Closes INV-101.
   Linear moves to In Progress and then In Review with the PR linked.
