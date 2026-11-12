@@ -52,15 +52,15 @@ Each step of the plan must say what to change, where, and how to tell that it is
 
 ### Split the steps
 
-If the plan has more than one step, first ask the human how to split them, in a dialog of its own (in Claude Code: `AskUserQuestion`, header `Split`). Name the number of steps in the question, and give each option its advantages in one short line, as the option's description:
+If the plan has more than one step, first ask the human how to split them, in a dialog of its own (in Claude Code: `AskUserQuestion`, header `Split`). Name the number of steps in the question, and give each option its upside and its downside in one short sentence each, as the option's description:
 
 > **Split:** How should I implement the 5 steps of the plan?
 >
-> - (a) One session: I do all steps here, one after the other. Cheapest, and later steps know what earlier ones learned about the code.
-> - (b) One agent per step: a fresh sub-agent per step, started and checked by this session. Each step starts with a clean context, so a long plan doesn't slow down, and it still runs without you.
-> - (c) One session per step: a fresh session per step, one after the other. The smallest context per step, and you can follow and steer each step on its own.
+> - (a) One session: I do all steps here, one after the other. Upside: cheapest, and later steps know what earlier ones found out about the code. Downside: everything read and tried stays in my context, so later steps get less attention, and details get lost once the context is summarized.
+> - (b) One agent per step: a fresh sub-agent per step, started and checked by this session. Upside: each step gets a clean context and full attention, and the run still needs no one. Downside: costs more, since each agent reads the plan and the code again, and it knows only what the plan and the code say, not what earlier steps found out.
+> - (c) One session per step: a fresh session per step, one after the other. Upside: each step gets a clean context, and you can follow and steer each one. Downside: costs about as much as (b), and unless I can start sessions myself, the run waits for you before each step.
 
-Recommend (a) and mark it as the other recommendations below describe. Recommend (b) instead when the plan is long (more than about eight steps) and its steps touch mostly separate parts of the code, since one session would then carry a lot of code that later steps don't need. Without a clear answer, use (a). The steps run one after the other in every option, since they build on each other. *Run the steps in agents or sessions* describes how (b) and (c) work.
+Recommend (a) and mark it as the other recommendations below describe. Recommend (b) instead when the plan is long (more than about eight steps) and its steps touch mostly separate parts of the code, since one session would then carry a lot of code that later steps don't need. Without a clear answer, use (a). The downside of (a) is real: a model weighs everything in its context, so the code, test output and failed attempts of earlier steps crowd out the plan and the instructions, and summarizing a long run drops details that later steps need. The steps run one after the other in every option, since they build on each other. *Run the steps in agents or sessions* describes how (b) and (c) work.
 
 Ask this first, because it changes the next questions: with (c), each session continues from the commits of the one before, so leave out commits option (d).
 

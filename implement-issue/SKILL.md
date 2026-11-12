@@ -285,13 +285,13 @@ On a long run, the harness may summarize earlier parts of the conversation. If t
 
 Each issue still gets its own branch, pull request and banner. Issues that build on each other (one blocks the other, or one needs code the other adds) are always implemented one after the other, by the same session or agent: the later issue's branch starts from the earlier one's, and its pull request targets that branch and says at the top that it builds on the earlier pull request. An issue blocked only by another issue of this run counts as not blocked.
 
-Steps 1 to 3 run once for all issues: fetch and check each issue, check the starting point once, and ask the open questions of all issues in one dialog, each question naming its issue. Add the question how to split the issues, as the first question of that dialog (header `Split`). If the issues are only known after the dialog, because the human chose to include sub-issues, ask it in a dialog right after. Name the issues in the question, put the option you recommend first, and give each option its advantages in one short line, as its description:
+Steps 1 to 3 run once for all issues: fetch and check each issue, check the starting point once, and ask the open questions of all issues in one dialog, each question naming its issue. Add the question how to split the issues, as the first question of that dialog (header `Split`). If the issues are only known after the dialog, because the human chose to include sub-issues, ask it in a dialog right after. Name the issues in the question, put the option you recommend first, and give each option its upside and its downside in one short sentence each, as its description:
 
 > **Split:** How should I implement ENG-123, ENG-124 and ENG-125?
 >
-> - One agent per issue: a fresh sub-agent per issue, started and checked by this session. The issues run in parallel, each in a clean context, and you get one hand-off for all.
-> - One session for all: I implement the issues here, one after the other. Cheapest, and later issues know what earlier ones learned about the code.
-> - One session per issue: a fresh session per issue, in parallel. Each issue is a run of its own that you can follow and steer.
+> - One agent per issue: a fresh sub-agent per issue, started and checked by this session. Upside: the issues run in parallel, each gets a clean context and full attention, and you get one hand-off for all. Downside: costs more, and pull requests that touch the same code can conflict.
+> - One session for all: I implement the issues here, one after the other. Upside: cheapest, and later issues know what earlier ones found out about the code. Downside: the context grows with every issue, so later issues get less attention, and details get lost once the context is summarized.
+> - One session per issue: a fresh session per issue, in parallel. Upside: each issue is a run of its own with a clean context, which you can follow and steer. Downside: costs more, pull requests that touch the same code can conflict, and unless I can start sessions myself, you start each one.
 
 Recommend one session for all when the issues build on each other or touch the same code, otherwise one agent per issue. Without a clear answer, use your recommendation.
 
