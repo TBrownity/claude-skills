@@ -1,6 +1,6 @@
 ---
 name: implement-issue
-description: Implement an issue end to end from just its identifier or link, whether it lives in Linear (ENG-123, a linear.app link) or on GitHub (#42, owner/repo#42, a github.com issue link), and leave a GitHub pull request that only needs a human to read it and click merge. Works out where the issue lives, fetches it with its comments and images, implements it as readable, well-structured code with tests, reviews the change with /merge-request-review in an independent sub-agent, fixes the findings, and opens the pull request with a description of what was built and what the review fixed. Use whenever the user names an issue and wants it implemented, built, fixed, worked on or turned into a pull request, e.g. "implement ENG-123", "pick up #42", "work on issue 42", "setz ENG-123 um", "mach einen PR für #42", even if they don't say where the issue lives.
+description: Implement an issue end to end from just its identifier or link, whether it lives in Linear (ENG-123, a linear.app link) or on GitHub (#42, owner/repo#42, a github.com issue link), and leave a GitHub pull request that only needs a human to read it and click merge. Works out where the issue lives, fetches it with its comments and images, implements it as readable, well-structured code with tests, reviews the change with /merge-request-review in an independent sub-agent, fixes the findings, and opens the pull request with a description of what was built and what the review fixed. Given several issues, asks whether to implement them in one session, one sub-agent each or one session each, and opens a pull request per issue. Use whenever the user names an issue and wants it implemented, built, fixed, worked on or turned into a pull request, e.g. "implement ENG-123", "pick up #42", "work on issue 42", "setz ENG-123 um", "mach einen PR für #42", even if they don't say where the issue lives.
 ---
 
 # Implement issue
@@ -22,6 +22,8 @@ The run has one short window at the start where you may ask the human questions.
 9. For a Linear issue, set it to In Review and link the pull request. Then hand off.
 
 Track the run in a task list (in Claude Code: `TaskCreate` and `TaskUpdate`, or `TodoWrite`), with step 5 split into one task per larger part of the issue, so the human sees at a glance how far you are if they look in. Keep one task in progress at a time, and mark it done as soon as it's finished.
+
+A run can cover several issues: when the human names more than one, or chooses in step 3 to include an issue's open sub-issues. The steps then work as *Several issues* at the end describes.
 
 ## 1. Fetch the issue
 
@@ -80,7 +82,7 @@ Once you know you can work on the issue, and before your next tool call, print t
 #----------------------------------------------------#
 ```
 
-This is where the actual work begins: everything before only found out whether it can. An issue that can't be worked on gets no banner. When several sessions run side by side, the banner shows at a glance which issue each one is working on.
+This is where the actual work begins: everything before only found out whether it can. An issue that can't be worked on gets no banner. With several issues, each gets its own banner when its work begins. When several sessions run side by side, the banner shows at a glance which issue each one is working on.
 
 Put it in a code block, since the terminal renders your messages as Markdown and would drop the leading spaces otherwise. Center the middle line under the 54 characters of the rule: indent it by (54 − its length) / 2 spaces, rounded down, e.g. 14 for `Implementing Issue ENG-123` and 16 for `Implementing Issue #42`.
 
@@ -117,7 +119,7 @@ A question is worth asking when a wrong guess would mean redoing a large part of
 
 Decide everything else yourself, the way the surrounding code does it: names, file layout, internal structure, small details. Note these decisions for the pull request.
 
-Ask all questions in one dialog (in Claude Code: `AskUserQuestion`, with up to four questions; a second dialog right after only if more remain). Put the option you recommend first and mark it `(Recommended)`, so the human can agree quickly. Where the issue doesn't ask to change existing data or behavior, recommend the option that leaves it as it is. A new pricing rule, for example, applies to new invoices, not to invoices that were already sent or paid: that is the safer default, and the human can still widen it. If nothing is open, don't ask: say in one line that the issue is clear, and start.
+Ask all questions in one dialog (in Claude Code: `AskUserQuestion`, with up to four questions; a second dialog right after only if more remain). If the run covers several issues, the dialog also asks how to split them (see *Several issues*). Put the option you recommend first and mark it `(Recommended)`, so the human can agree quickly. Where the issue doesn't ask to change existing data or behavior, recommend the option that leaves it as it is. A new pricing rule, for example, applies to new invoices, not to invoices that were already sent or paid: that is the safer default, and the human can still widen it. If nothing is open, don't ask: say in one line that the issue is clear, and start.
 
 Running this skill is the human's request to push a branch, open a pull request and, for a Linear issue, update its status. Don't ask for that again.
 
@@ -278,3 +280,47 @@ End with a short message:
 When a test still fails after two honest attempts, step back: read the criterion and the code around it again, or hand the problem to a sub-agent with a short brief of what you tried. If it still can't be solved, finish everything else, push the branch and open the pull request as a draft, with the blocker at the top of the description, so nothing is lost and the human sees at once what's missing. Never get a test to pass by deleting it, skipping it or weakening its assertions.
 
 On a long run, the harness may summarize earlier parts of the conversation. If that happened, fetch the issue again, rebuild the AC list, and check `git status --short` and `git log --oneline origin/<base branch>..HEAD` to see where you are.
+
+## Several issues
+
+Each issue still gets its own branch, pull request and banner. Issues that build on each other (one blocks the other, or one needs code the other adds) are always implemented one after the other, by the same session or agent: the later issue's branch starts from the earlier one's, and its pull request targets that branch and says at the top that it builds on the earlier pull request. An issue blocked only by another issue of this run counts as not blocked.
+
+Steps 1 to 3 run once for all issues: fetch and check each issue, check the starting point once, and ask the open questions of all issues in one dialog, each question naming its issue. Add the question how to split the issues, as the first question of that dialog (header `Split`). If the issues are only known after the dialog, because the human chose to include sub-issues, ask it in a dialog right after. Name the issues in the question, put the option you recommend first, and give each option its advantages in one short line, as its description:
+
+> **Split:** How should I implement ENG-123, ENG-124 and ENG-125?
+>
+> - One agent per issue: a fresh sub-agent per issue, started and checked by this session. The issues run in parallel, each in a clean context, and you get one hand-off for all.
+> - One session for all: I implement the issues here, one after the other. Cheapest, and later issues know what earlier ones learned about the code.
+> - One session per issue: a fresh session per issue, in parallel. Each issue is a run of its own that you can follow and steer.
+
+Recommend one session for all when the issues build on each other or touch the same code, otherwise one agent per issue. Without a clear answer, use your recommendation.
+
+### One session for all
+
+Take the issues one after the other, each after the issues it builds on, and run steps 4 to 9 for each one completely, starting with its banner. Start each branch from the latest base branch, unless the issue builds on another one. Hand off once at the end, with the pull requests of all issues.
+
+### One agent per issue
+
+You stay in this session as the coordinator. For each issue, print its banner, set its status as step 4 describes, and start a worker sub-agent with the brief below (in Claude Code: the `Agent` tool with the `general-purpose` agent and `isolation: "worktree"`, so each worker has a working tree of its own and they can run in parallel; without that, run them one after the other in this working tree).
+
+```text
+Implement <Linear issue ENG-123 | GitHub issue owner/repo#42> with the implement-issue skill,
+steps 4 to 6 only: create the branch <name> from <origin/<base branch> | the branch of ENG-122>,
+implement with tests and commit as you go, run all checks. Don't change the issue's status.
+Settled already, don't ask: <the answers to this issue's questions, or "nothing was open">
+Report: the branch, your commits, the acceptance criteria with where each is implemented and
+tested, the decisions you made, and what you noticed outside the issue.
+```
+
+A worker can't start a sub-agent of its own, so the reviews start from this session. When a worker reports, review its branch as step 7 describes, with the step 7 brief naming the worker's branch and working tree instead of the current branch. Send the findings back to the same worker (in Claude Code: `SendMessage` with its ID), to fix them as step 7 describes, and then to push and open the pull request as step 8 describes, with the findings in its *Review* section. A second review round, if step 7 calls for one, starts from here too. Once all pull requests are open, do step 9 for each issue, and hand off once with all of them.
+
+### One session per issue
+
+Start one session per issue with this prompt. If you have a tool that starts a session (e.g. `create_session` in Claude Code on the web), use it. Otherwise print one prompt per issue in a code block, and ask the human to paste each into a new session.
+
+```text
+/implement-issue ENG-123
+Settled already in another session, don't ask again: <the answers to this issue's questions, or "nothing was open">
+```
+
+Issues that build on each other share one session: name them all in its prompt, and add `Split: one session for all`. End this session with the list of sessions you started, or of the prompts to paste. The sessions do everything else, including the status changes.
