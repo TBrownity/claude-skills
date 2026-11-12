@@ -1,18 +1,19 @@
 ---
 name: implement-plan
-description: Carry an agreed plan (or a set of requirements) all the way to a tested, self-reviewed implementation that's ready to hand back. The plan holds the hard decisions, so this session can run on a cheaper model like Sonnet and works through the steps itself. Open questions are decided on your own, and only true showstoppers interrupt. Use when the user asks you to implement a plan, feature, task, or ticket autonomously, end-to-end, or with minimal supervision, e.g. "implement this plan", "build this on your own", "go ahead and ship it".
+description: Carry an agreed plan (or a set of requirements) all the way to a tested, self-reviewed implementation that's ready to hand back. The plan holds the hard decisions, so this session can run on a cheaper model like Sonnet. It works through the steps itself, or gives each step its own sub-agent or session if you choose so. Open questions are decided on your own, and only true showstoppers interrupt. Use when the user asks you to implement a plan, feature, task, or ticket autonomously, end-to-end, or with minimal supervision, e.g. "implement this plan", "build this on your own", "go ahead and ship it".
 ---
 
 # Implement plan
 
 Your task is to implement a plan on your own, without further human input.
 
-The hard thinking happened before this skill: the plan holds every design decision. Carrying it out needs little reasoning, so a session on a cheaper model like Sonnet is enough, and that is where the run saves most of its usage. You work through the steps yourself, one after the other, in this one session. Since the steps build on each other, a sub-agent per step would only add start-up cost and lose what earlier steps learned about the code. Sub-agents are used only where a fresh view or a stronger model pays off:
+The hard thinking happened before this skill: the plan holds every design decision. Carrying it out needs little reasoning, so a session on a cheaper model like Sonnet is enough, and that is where the run saves most of its usage. Before you start, the human chooses how the steps are split (see *Split the steps*). By default, you work through the steps yourself, one after the other, in this one session: since the steps build on each other, a sub-agent per step adds start-up cost and loses what earlier steps learned about the code. Apart from that choice, sub-agents are used only where a fresh view or a stronger model pays off:
 
 | Work | Who does it |
 | --- | --- |
 | Planning and every design decision | `/decide-together`, before this skill, on the strongest model (Opus) |
-| Every plan step, trimming, and running all checks | You, in this session |
+| Every plan step | You, in this session, or one sub-agent or session per step, as the human chose |
+| Trimming, and running all checks | You, in this session (with one session per step: the session of the last step) |
 | A step you can't finish | A sub-agent on Opus |
 | Reviewing the change | A sub-agent on Opus, since a stronger model should check the work of a cheaper one |
 
@@ -48,6 +49,20 @@ If you were given a plan from `/decide-together` (usually as a path, e.g. `/impl
 If you are still unsure about anything, or the requirements are not a plan at all, use the `/decide-together` skill to fully align with your human, and suggest running it on Opus. Don't plan on the cheaper model: you follow the plan literally, so a vague plan costs more in rework than planning costs.
 
 Each step of the plan must say what to change, where, and how to tell that it is done. If a step is too vague for that, settle it with `/decide-together` before you start.
+
+### Split the steps
+
+If the plan has more than one step, first ask the human how to split them, in a dialog of its own (in Claude Code: `AskUserQuestion`, header `Split`). Name the number of steps in the question, and give each option its advantages in one short line, as the option's description:
+
+> **Split:** How should I implement the 5 steps of the plan?
+>
+> - (a) One session: I do all steps here, one after the other. Cheapest, and later steps know what earlier ones learned about the code.
+> - (b) One agent per step: a fresh sub-agent per step, started and checked by this session. Each step starts with a clean context, so a long plan doesn't slow down, and it still runs without you.
+> - (c) One session per step: a fresh session per step, one after the other. The smallest context per step, and you can follow and steer each step on its own.
+
+Recommend (a) and mark it as the other recommendations below describe. Recommend (b) instead when the plan is long (more than about eight steps) and its steps touch mostly separate parts of the code, since one session would then carry a lot of code that later steps don't need. Without a clear answer, use (a). The steps run one after the other in every option, since they build on each other. *Run the steps in agents or sessions* describes how (b) and (c) work.
+
+Ask this first, because it changes the next questions: with (c), each session continues from the commits of the one before, so leave out commits option (d).
 
 Next, ask the human how to build. Ask these four questions together, before you ask for permissions, because the answers decide which permissions you need:
 
@@ -104,6 +119,8 @@ Your harness or instructions might require you to ask permission for certain act
 
 If the human chose to run the full test suite, it usually runs on CI (`/pass-all-checks`). Before you ask your bundle, check whether the project has CI and a large suite, as `/pass-all-checks` describes under *Decide the test route first*. If so, include in the bundle whatever starts a pipeline there: pushing the feature branch, and opening a draft merge request with the exact title and description you would use. Don't leave this for the end: by then the human is away, and the run would either stall or fall back to hours of local tests. Without commits (commits (d)), there is nothing to push, so the suite runs locally.
 
+With one session per step, add starting the next session to the bundle, if you have a tool for it. A new session may ask for its permissions again, so suggest allowing the test and lint commands in the project's settings.
+
 If during your run you discover more permissions are needed, postpone the affected actions and finish the part of your work you already have permission for. Don't get around a missing permission by other means, and don't complicate your work just to avoid an action it needs. When you can no longer continue, accept the interruption and ask for another permission batch.
 
 The final test run is the exception: if a permission it needs is missing at the end, don't stop to ask, because the human is away. Run the full suite locally in parallel instead, and say in your hand-off that it ran locally and why. A loaded machine the human is not using is the lesser harm, compared with returning to an unverified change.
@@ -121,6 +138,8 @@ If you have a tool for a task list (in Claude Code: `TodoWrite`, or `TaskCreate`
 - Run all checks: the full test suite and the linters, as far as the human chose them (leave it out if they chose neither).
 - Self-review (only if the human chose the review).
 - Hand off.
+
+With one session per step, each session's list holds only its own step, and the last session's list also the tasks after it.
 
 Name each task so the human understands it without further context, e.g. `Add opt-in column to users`, not `Step 2`.
 Keep exactly one task in progress at a time, and mark it done as soon as it is finished, not in a batch at the end. When new work comes up, such as failing tests to fix or findings from the self-review, add a task for it instead of hiding it in the current one.
@@ -159,6 +178,45 @@ Don't commit. Report in a few lines what you changed and why, or what blocks the
 ```
 
 Then check its change with the related tests, and commit it as *Commit your work* describes. If the sub-agent is blocked too, or you can't start one, treat it as a showstopper: postpone the steps that depend on it, continue with the others, and ask the human only when you can no longer continue.
+
+## Run the steps in agents or sessions
+
+Skip this section if the human chose one session for all steps.
+
+### One agent per step
+
+You stay in this session as the coordinator: you keep the task list, commit, and do trimming, checks, self-review and hand-off as usual. Only the steps go to sub-agents. For each step, one after the other, start a fresh sub-agent (in Claude Code: the `Agent` tool with the `general-purpose` agent and `model: "sonnet"`) with this brief:
+
+```text
+Implement step <n> (<title>) of the plan at <path to the plan>, in the working tree as it is now.
+Steps 1 to <n-1> are done. The decisions in the plan are final; decide small open questions
+the way the surrounding code does. <If the human chose tests: Add tests for the step.>
+Run the related tests with quiet output: <command>
+Don't commit. Report in a few lines: what you changed, the tests and their result, the small
+decisions you made, and what you noticed outside the plan.
+```
+
+When it reports, run the related tests yourself and commit the step as *Commit your work* describes. Don't read its changes in full: `git diff --stat` and the passing tests are enough, and the self-review reads everything at the end. Keeping your own context small is the point of this option. Keep the agent's decisions and notes for the hand-off. A step its agent couldn't finish goes to Opus, as *When a step gets stuck* describes.
+
+### One session per step
+
+This session prepares the run and implements step 1. Each further step runs in a fresh session, which the session before starts when its step is done:
+
+1. Implement your step as usual, and commit it.
+2. Start the next session with this prompt. If you have a tool that starts a session (e.g. `create_session` in Claude Code on the web), use it, on Sonnet. Otherwise print the prompt in a code block and ask the human to paste it into a new session on Sonnet (in Claude Code: `/clear`, `/model sonnet`, then the prompt).
+
+   ```text
+   /implement-plan <path to the plan> step <n>
+   Settings from the preparation, don't ask again: one session per step; checks: <…>;
+   test run: <…>; trimming: <…>; commits: <…>; branch: <name>.
+   Steps 1 to <n-1> are done and committed on that branch.
+   Notes for the hand-off so far: <small decisions and things noticed outside the plan, from all earlier steps>
+   ```
+
+   If the next session doesn't share this working tree, e.g. a session in the cloud, push the branch first, and put the plan's text into the prompt instead of its path.
+3. End with one line: which step is done, and whether the next session is running or waits for the human.
+
+When you were started with `step <n>` and these settings, you are one of these sessions: skip the questions of the preparation and use the settings. Check that you are on the branch and that `git log` holds the earlier steps (fetch the branch first, if needed), then implement step `<n>` and go on with 1 to 3. The session of the last step doesn't start another one: it continues with trimming, checks, self-review and hand-off. Its hand-off covers all steps, with the commits from `git log` and the notes from the prompt.
 
 ## Verify with tests
 
@@ -248,4 +306,4 @@ Only when your implementation is complete and has passed the checks the human ch
 
 ## Begin your work
 
-Now implement the plan end-to-end, with the checks, trimming and commits the human chose, and only then hand off to the human.
+Now implement the plan end-to-end, with the split, checks, trimming and commits the human chose, and only then hand off to the human.
