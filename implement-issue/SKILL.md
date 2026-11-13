@@ -16,7 +16,7 @@ The run has one short window at the start where you may ask the human questions.
 3. Ask the open questions, all in one dialog, or start right away if nothing is open.
 4. Create the branch, and for a Linear issue set it to In Progress.
 5. Implement, with tests, committing as you go.
-6. Run all tests and linters.
+6. Run all tests and linters, then trim the change with `/trim-change`: remove what the issue doesn't need, without changing behavior.
 7. Review the change with `/merge-request-review` in an independent sub-agent, and fix what it finds.
 8. Open the pull request.
 9. For a Linear issue, set it to In Review and link the pull request. Then hand off.
@@ -70,7 +70,12 @@ Before any work starts, make sure this is an issue you can work on now. Building
   - GitHub: the issue's "Blocked by" relationships, where the repository uses them (`gh api repos/<owner>/<repo>/issues/<number>/dependencies/blocked_by`), and the blockers the body or the comments name, like "blocked by #40" or "depends on #40". Check whether each one is still open.
 - **Not taken:** if the issue is in progress and assigned to someone else, two people would be working on the same thing. Ask before you start.
 
-If the issue is blocked, don't start: no branch, no status change. Tell the human which issue blocks it, that issue's status, and what it holds up, and ask whether to wait for it (recommend this) or to go ahead anyway, e.g. because the blocker is nearly done or doesn't touch the part this issue needs. If they choose to wait, end the run there.
+If the issue is blocked, what to do depends on how far the blocker is:
+
+- **The blocker has no pull request yet:** don't start, no branch, no status change. Tell the human which issue blocks it, that issue's status, and what it holds up, and ask whether to wait for it (recommend this) or to go ahead anyway, e.g. because the blocker doesn't touch the part this issue needs. If they choose to wait, end the run there.
+- **The blocker's work is in an open pull request** (Linear lists it among the blocker's attachments; otherwise look through the open pull requests for the blocker's identifier): offer to stack on it. Stacking means branching from that pull request's branch and opening yours against it (steps 4 and 8); the human then merges the two in order. Recommend stacking when this issue builds on the blocker's code, and waiting when it doesn't.
+
+When the human's prompt already says what to do with a blocked issue ("stack on open pull requests", "wait"), do that without asking. When nobody can answer, wait: end the run with the message above, so no work is built on a moving base.
 
 ### Announce the run
 
@@ -103,7 +108,17 @@ Before anything changes, check what could make the run fail halfway, so you can 
 - **An earlier attempt:** a branch for this issue, locally or on the remote, under the name from step 4, or an open pull request that already refers to the issue. Ask whether to continue on it or to start fresh.
 - **GitHub:** the remote must be on GitHub, and you need a way to open a pull request: the `gh` CLI (`gh auth status`) or the GitHub MCP tools (`create_pull_request`). If neither works, ask now.
 - **Conventions:** read CLAUDE.md, AGENTS.md, CONTRIBUTING.md and the README, if present, for code style, structure and the commands for tests and linters. The CI configuration (e.g. `.github/workflows/`) shows which checks a pull request must pass.
+- **The implementation guide:** a repository may keep a guide for implementing its issues in `docs/implementing-issues.md`. Read it when it is on the base branch. When it isn't, look for a remote branch named `implementing-issues-guide` and read the file from there, without checking that branch out:
+
+  ```sh
+  git fetch origin implementing-issues-guide
+  git show origin/implementing-issues-guide:docs/implementing-issues.md
+  ```
+
+  Where the guide and this skill both speak, the guide wins: how to read the issue, which spec to consult, which checks to run, how to name the branch, how to write the pull request, which statuses to set. Keep its path or branch at hand for the review brief in step 7.
+- **Toolchain:** run the project's build or test command once now (`cargo test --no-run`, `npm ci`, `bundle install`, …). A missing toolchain should show up before you plan, not halfway through; if installing one takes minutes (`rustup toolchain install`, a package download), start it now and read on while it runs.
 - **The review skill:** `merge-request-review`, possibly listed with a prefix like `anthropic-skills:merge-request-review`. If it's missing, say so in one line and go on: the review sub-agent then reviews by the same criteria without it (see step 7).
+- **The trim skill:** `trim-change`, possibly with the same prefix. If it's missing, say so in one line and trim by its criteria yourself (see step 6).
 
 ## 3. Ask the open questions, once
 
@@ -131,6 +146,10 @@ Create the branch from the latest base branch:
 
 - **Linear:** named with the issue's `gitBranchName` (e.g. `tim/eng-123-add-csv-export`). Linear's GitHub integration links branch and pull request to the issue by this name. Without it, use `<identifier in lowercase>-<short-slug>`.
 - **GitHub:** named `<number>-<short-slug>` after the issue's title (e.g. `42-export-invoices-as-csv`), the name GitHub's own "Create a branch" button would suggest.
+
+For a stacked issue (step 1) the base is the blocker's pull request branch instead: fetch it, branch from it, and keep it as the base for the review (step 7) and the pull request (step 8). Never branch from the branch of a merged or closed pull request.
+
+Before the first commit, check `git var GIT_AUTHOR_IDENT`: commits carry the identity of the person running the session, not Claude's. Commits and pull requests carry no attribution of their own, no `Co-Authored-By` trailer and no "Generated with" line, and a branch name never starts with `claude/`.
 
 For a Linear issue, set it to the team's "In Progress" status. Teams name their statuses differently, so look the name up with `list_issue_statuses` for the issue's team, then set it with `save_issue` and `state`. If the issue is already in that status or further along, leave it. A GitHub issue has no status to set; leave its labels, assignees and projects as they are.
 
@@ -173,11 +192,32 @@ The pull request is the only thing the human reads, and they should understand i
 
 Commit each logical change as soon as its tests pass. A logical change is one you can describe in one sentence without "and". Keep code and its tests in one commit; a refactoring the change needs gets a commit of its own, before it. Write messages in the project's style, as `git log` shows it, and include the issue identifier if the project's commits do. Stage files by name rather than with `git add -A`, and check `git diff --staged` before each commit.
 
-## 6. Run all checks
+Push the branch to save your work whenever you like: until the pull request exists, a push usually runs no CI (most workflows run on `pull_request` and on pushes to the main branch; the `on:` section of the workflow files says). Once the pull request is open, every push starts a run, so from then on push in batches (step 8).
+
+## 6. Run all checks, then trim
 
 Once the issue is implemented, run the whole test suite and every linter the project has (find them in its docs, CI configuration, `package.json`, `Makefile`, …), and fix what fails. Assume everything passed before your change.
 
+If the implementation guide (step 2) lists checks, that list is the one to run, in its order, including the ones that apply only when certain files changed: a generated header, exported symbols, an ABI version, coverage floors, mutation testing on the diff, a fuzz target. CI alone doesn't show which of them a merge requires, and a check that only reports in CI can still be a reason to add a test.
+
 If a test fails that your change can't plausibly affect, check whether it fails on the base branch too, e.g. in a `git worktree`. If so, leave it and mention it in the pull request. If part of the suite can't run locally, e.g. because it needs services you don't have, run what you can: CI runs the rest on the pull request.
+
+### Trim
+
+With the tree green, run the `trim-change` skill against the base branch (`/trim-change`, or `/trim-change <base ref>` for
+a stacked issue). It briefs two fresh sub-agents that look for missing structure and local waste in the diff, applies
+and commits the trims that keep behavior and stay inside the change, and reports the rest: refactorings that reach
+deeper into existing code, and cuts that would change behavior. Give it what its brief asks for: the issue's own
+words and the AC list as the requirements, the human's decisions from step 3 as decisions already made, and the path
+or branch of the implementation guide. Don't give it your reasoning about how you built the change.
+
+Do this before the review, so the reviewer reads the change and not its scaffolding, and never after the review's
+fixes: a fix that the trim then removes is a wasted round. The skill hands its report back to you: the applied
+changes go into the pull request's *Review* section in one line, and its two "decision required" sections go into
+the pull request as they are, so the human can decide there (step 8). If the skill is missing, say so in one line
+and go through its "local pass" list yourself: unreachable checks, wrappers that only forward, unused parameters and
+options, comments that restate the code, compatibility code for callers that no longer exist; one commit per kind of
+cut, tests green after each.
 
 ## 7. Review and fix
 
@@ -186,14 +226,21 @@ The review runs in an independent worker: a fresh sub-agent (in Claude Code: the
 So keep your own view out of the brief: no AC list, no summary of what you built, no explanation of why. The worker gets the issue from its source itself and the change from git. Give it this brief, with the line on reading the issue that fits the source:
 
 ```text
-Review the current branch against origin/<base branch> with the merge-request-review skill.
+Review the current branch against <origin/<base branch>, or the stacked pull request's branch>
+with the merge-request-review skill.
 The branch implements <Linear issue ENG-123 | GitHub issue owner/repo#42>. Read the issue
 yourself, with all its comments, since later comments can change the requirements:
 <Linear: with the Linear tools, get_issue and list_comments |
  GitHub: gh issue view 42 --repo owner/repo --comments, or the GitHub MCP tool issue_read>
 Then review the change against it.
+<If there is one:> The repository's implementation guide is <docs/implementing-issues.md |
+ on the remote branch implementing-issues-guide: git show
+ origin/implementing-issues-guide:docs/implementing-issues.md>. Read it; its rules are the
+project's conventions.
 In addition to the skill's own checks, report as issues:
 - a requirement of the issue that the change doesn't meet, or that no test covers,
+- a rule of the implementation guide that the change breaks, or a check it names that
+  wasn't run,
 - names or structure a reader new to the code can't follow,
 - names a reader can mix up with the names next to them (a function and a type, a getter
   and a setter),
@@ -202,7 +249,7 @@ In addition to the skill's own checks, report as issues:
 Don't change any files. Return the review in the skill's output format.
 ```
 
-If `merge-request-review` is missing, replace the first line with: "Review the current branch against origin/<base branch>: correctness, security, performance, test coverage, duplicated logic and the project's conventions. Rate each issue High, Medium or Low, drop the Low ones, and point each issue to the diff lines it is about."
+If `merge-request-review` is missing, replace the first two lines with: "Review the current branch against <base ref>: correctness, security, performance, test coverage, duplicated logic and the project's conventions. Rate each issue High, Medium or Low, drop the Low ones, and point each issue to the diff lines it is about."
 
 If you can't start a sub-agent at all, review the change yourself with the skill, and say in the pull request's *Review* section that the review ran in the same session as the implementation.
 
@@ -216,11 +263,13 @@ After the fixes, run the related tests again, and the full suite and linters if 
 
 ## 8. Open the pull request
 
-Push the branch (`git push -u origin <branch>`) and open the pull request against the base branch, ready for review rather than as a draft: the human should be able to merge it as it is. Use `gh pr create --base <base branch> --title "<title>" --body-file <file>`, or the GitHub MCP tool `create_pull_request`.
+Push the branch (`git push -u origin <branch>`) and open the pull request against the base branch. Open it ready for review when the local run of step 6 was complete: the human should be able to merge it as it is, and CI then runs once. Open it as a draft when checks couldn't run locally, when something blocks (see the end) or when you need the pull request's number before the work is done, and mark it ready for review once, when the work is complete: `gh pr ready <number>`, or the GitHub MCP tool `update_pull_request` with `draft: false`. Repositories often run their expensive jobs (other operating systems, fuzzing, mutation testing) only for a pull request that is ready for review, so don't switch between draft and ready more than that once. Use `gh pr create --base <base branch> --title "<title>" --body-file <file>` (`--draft` for a draft), or the GitHub MCP tool `create_pull_request` (`draft: true`).
 
-**Title:** in the project's style for pull requests. Without one, a short summary, for a Linear issue with the identifier in front: `ENG-123: Export invoices as CSV`. For a GitHub issue the summary alone is enough, since the closing reference links the issue, and a `(#42)` in the title would be mistaken for the pull request's own number.
+**Title:** in the project's style for pull requests. Find it before you write: the implementation guide may fix the format, and the titles of the last ten merged pull requests (`gh pr list --state merged --limit 10`, or the GitHub MCP tool `list_pull_requests`) show the pattern, including where the identifier goes and whether a title describes the change (`[ENG-123] Let callers cancel a download`) or repeats the issue's title. Without a pattern, a short summary, for a Linear issue with the identifier in front: `ENG-123: Export invoices as CSV`. For a GitHub issue the summary alone is enough, since the closing reference links the issue, and a `(#42)` in the title would be mistaken for the pull request's own number.
 
-**Closing reference:** `Closes ENG-123` for Linear, `Closes #42` for a GitHub issue in the same repository, `Closes owner/repo#42` for one in another. Linear or GitHub then links the pull request to the issue and closes the issue when the pull request is merged.
+**Closing reference:** `Closes ENG-123` for Linear, `Closes #42` for a GitHub issue in the same repository, `Closes owner/repo#42` for one in another, in the keyword the project uses (`Closes`, `Resolves`, `Fixes`), and with the parent issue when the project names it, as in `Resolves ENG-123 (part of ENG-100).` Linear or GitHub then links the pull request to the issue and closes the issue when the pull request is merged.
+
+**Stacked:** a stacked pull request (steps 1 and 4) goes against the base pull request's branch, not the base branch, and its body starts with the line `Stacked on #NN`. Once that pull request merges, retarget yours to the base branch and rebase, once. Don't rebase onto every push of the base before that: each rebase is a push, and each push to an open pull request is a CI run.
 
 **Language:** the one the team uses in the repository, as its recent pull requests or commits show; if that is unclear, the language of the issue.
 
@@ -239,11 +288,19 @@ Push the branch (`git push -u origin <branch>`) and open the pull request agains
 - [x] AC2 …
 
 ## Review
+`/trim-change` applied <n> trims (<logic lines saved>, <concepts removed>): <one line, e.g. the one-method wrapper is
+inlined, the unused retry parameter is gone>.
+
 `/merge-request-review` found <n> issues, fixed in this pull request:
 1. **[High]** <finding> — <how it was fixed>
 2. **[Medium]** <finding> — <how it was fixed>
 
 Not fixed: <finding> — <why>.
+
+## Trim: decision required
+<The two "decision required" sections of the trim report, tables included, when it has any: further improvements
+that keep the behavior but reach into existing code, and ideas that change behavior. Leave the section out when
+there are none.>
 
 ## Decisions
 - <decisions you made where the issue left room, and the answers to the questions at the start>
@@ -255,9 +312,9 @@ Not fixed: <finding> — <why>.
 - <what you noticed outside the issue; files that want splitting; pre-existing test failures; checks that couldn't run locally>
 ```
 
-If the review found nothing, the *Review* section says "`/merge-request-review` found no significant issues."
+If the review found nothing, the *Review* section says "`/merge-request-review` found no significant issues." If the trim applied nothing, its line says so too.
 
-If the repository runs CI on pull requests and you can follow it (e.g. `gh pr checks <number> --watch`), wait for the result and fix the failures your change caused, with new commits. A pull request with red checks isn't ready to merge. If you can't follow CI, say so in the hand-off.
+If the repository runs CI on pull requests and you can follow it (`gh pr checks <number> --watch`; without `gh`, the GitHub MCP tool `pull_request_read` with `get_check_runs`, or a subscription to the pull request's activity where the session offers one), wait for the result and fix the failures your change caused, with new commits. Every push to an open pull request starts a new run, and jobs on Windows and macOS cost two and ten times the minutes of Linux jobs, so read the whole run before you push again: collect every failure, fix them together, run the local checks of step 6 again and push once. Never push an empty commit, amend and force-push, or close and reopen the pull request to start a run. A job that failed for reasons outside your change (a network error, a flaky test) is rerun with `gh run rerun <run id> --failed` or the GitHub MCP tool `actions_run_trigger` with `rerun_failed_jobs`; if it fails the same way again, that goes into the hand-off. A pull request with red checks isn't ready to merge. Wait for the checks a merge requires; a job the implementation guide marks as advisory (for example mutation testing that only reports) doesn't hold up the hand-off, but its warnings on your lines go into the pull request's notes. If you can't follow CI, say so in the hand-off.
 
 ## 9. Update the issue and hand off
 
@@ -283,7 +340,7 @@ On a long run, the harness may summarize earlier parts of the conversation. If t
 
 ## Several issues
 
-Each issue still gets its own branch, pull request and banner. Issues that build on each other (one blocks the other, or one needs code the other adds) are always implemented one after the other, by the same session or agent: the later issue's branch starts from the earlier one's, and its pull request targets that branch and says at the top that it builds on the earlier pull request. An issue blocked only by another issue of this run counts as not blocked.
+Each issue still gets its own branch, pull request and banner. Issues that build on each other (one blocks the other, or one needs code the other adds) are always implemented one after the other, by the same session or agent: the later issue is stacked on the earlier one, so its branch starts from the earlier one's, and its pull request targets that branch and starts with `Stacked on #NN` (steps 4 and 8). An issue blocked only by another issue of this run counts as not blocked.
 
 Steps 1 to 3 run once for all issues: fetch and check each issue, check the starting point once, and ask the open questions of all issues in one dialog, each question naming its issue. Add the question how to split the issues, as the first question of that dialog (header `Split`). If the issues are only known after the dialog, because the human chose to include sub-issues, ask it in a dialog right after. Name the issues in the question, put the option you recommend first, and give each option its upside and its downside in one short sentence each, as its description:
 
@@ -306,10 +363,11 @@ You stay in this session as the coordinator. For each issue, print its banner, s
 ```text
 Implement <Linear issue ENG-123 | GitHub issue owner/repo#42> with the implement-issue skill,
 steps 4 to 6 only: create the branch <name> from <origin/<base branch> | the branch of ENG-122>,
-implement with tests and commit as you go, run all checks. Don't change the issue's status.
+implement with tests and commit as you go, run all checks and /trim-change.
+Don't change the issue's status.
 Settled already, don't ask: <the answers to this issue's questions, or "nothing was open">
 Report: the branch, your commits, the acceptance criteria with where each is implemented and
-tested, the decisions you made, and what you noticed outside the issue.
+tested, the decisions you made, the trim report, and what you noticed outside the issue.
 ```
 
 A worker can't start a sub-agent of its own, so the reviews start from this session. When a worker reports, review its branch as step 7 describes, with the step 7 brief naming the worker's branch and working tree instead of the current branch. Send the findings back to the same worker (in Claude Code: `SendMessage` with its ID), to fix them as step 7 describes, and then to push and open the pull request as step 8 describes, with the findings in its *Review* section. A second review round, if step 7 calls for one, starts from here too. Once all pull requests are open, do step 9 for each issue, and hand off once with all of them.

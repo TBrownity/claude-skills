@@ -9,6 +9,7 @@ A personal collection of [Claude Code skills](https://docs.claude.com/en/docs/cl
 | [decide-together](decide-together/) | Plans a change by walking through the future implementation and settling every decision, edge case and blocker with you before any code is written. The result is a plan an agent can execute without further questions. |
 | [implement-plan](implement-plan/) | Implements an agreed plan autonomously and end to end (tests, trimming, full test run, self-review), and only interrupts for true showstoppers. Runs on Sonnet, since the plan already holds the hard decisions. |
 | [implement-issue](implement-issue/) | Implements a Linear or GitHub issue from just its identifier, reviews the change with `/merge-request-review` in an independent sub-agent, fixes the findings and opens a pull request that only needs to be read and merged. |
+| [trim-change](trim-change/) | Makes a working change simpler and smaller: applies and commits the trims that keep the behavior, and hands larger refactorings and behavior cuts to you to decide. Runs inside `implement-issue` between the checks and the review. |
 
 ## Installation
 
@@ -17,7 +18,7 @@ On Windows, link the skill folders into your personal skills folder with PowerSh
 ```powershell
 $skills = "$env:USERPROFILE\.claude\skills"
 New-Item -ItemType Directory -Force $skills | Out-Null
-foreach ($skill in "decide-together", "implement-plan", "implement-issue") {
+foreach ($skill in "decide-together", "implement-plan", "implement-issue", "trim-change") {
     New-Item -ItemType Junction -Path "$skills\$skill" -Target "$PWD\$skill"
 }
 ```
@@ -96,16 +97,26 @@ The skill:
   #----------------------------------------------------#
   ```
 
+- A blocker whose work is already in an open pull request can be stacked on: the branch starts from that pull request's branch, and the new pull request targets it and starts with `Stacked on #NN`.
+- Reads the repository's implementation guide, `docs/implementing-issues.md`, from the base branch or from a branch named `implementing-issues-guide`. Where the guide and the skill both speak, the guide wins: checks to run, branch names, pull request style, statuses.
 - Asks all open questions in one dialog at the start and works on its own after that. Where the issue doesn't ask to change existing data or behavior, it recommends the option that leaves them as they are.
 - Implements the issue with tests, in readable code that is split into focused files and follows the project's conventions. An existing file that is already too large isn't restructured: new logic goes into a new unit, and the pull request suggests the split.
+- Runs all checks, then trims the change with `/trim-change` before the review, so the reviewer reads the change and not its scaffolding.
 - Reviews the change with `/merge-request-review` in an independent sub-agent, which reads the issue itself instead of the implementer's summary of it, and fixes the findings.
-- Opens a pull request ready for review. Its description lists the changes, each acceptance criterion with its code and test, the review findings and how they were fixed, and the decisions to check. `Closes ENG-123` or `Closes #42` closes the issue on merge.
+- Opens a pull request ready for review after a complete local run, and as a draft only when checks couldn't run or something blocks. Its title follows the style of the last merged pull requests. Its description lists the changes, each acceptance criterion with its code and test, the trims and review findings and how they were fixed, the trim's open decisions, and the decisions to check.
+- Follows CI and fixes the failures it caused in batches, so each push to the pull request starts one CI run. `Closes ENG-123` or `Closes #42` closes the issue on merge.
 - Can implement several issues in one run, e.g. `/implement-issue ENG-123 ENG-124`, or an issue together with its sub-issues. Each issue gets its own branch and pull request. The question dialog then also asks how to split them, each option with its upside and its downside in one sentence each: one sub-agent per issue (in parallel, a clean context per issue, one hand-off, but more expensive, and pull requests on the same code can conflict; recommended for independent issues), all in one session (cheapest, later issues know what earlier ones found out, but later issues get less attention as the context grows; recommended for issues that build on each other), or one session per issue (in parallel, each a run of its own you can follow and steer, but more expensive, and you start each session unless the skill can). Issues that build on each other always run in order, and the later pull request builds on the earlier one.
 - For a Linear issue, uses Linear's branch name, sets the issue to In Progress at the start and to In Review at the end, and links the pull request. A GitHub issue gets a branch named like `42-short-description` and is otherwise left as it is.
 
-It needs the Linear MCP server for Linear issues, the `gh` CLI or the GitHub MCP tools for GitHub, and the `merge-request-review` skill. If the review skill is missing, the sub-agent reviews by the same criteria without it.
+It needs the Linear MCP server for Linear issues, the `gh` CLI or the GitHub MCP tools for GitHub, and the `merge-request-review` and `trim-change` skills. If the review skill is missing, the sub-agent reviews by the same criteria without it; if the trim skill is missing, the skill goes through its checklist of local cuts itself.
 
 The folder [implement-issue/evals](implement-issue/evals/) holds five test cases with simulated Linear and GitHub data: a clear issue whose comments change the requirements, a change next to an oversized file, an issue with contradicting requirements, a GitHub issue given by number, and a blocked issue. They use the layout that `claude plugin eval` reads.
+
+## trim-change
+
+Makes a change that works simpler and smaller, with fewer concepts for a reader to understand. Run it with `/trim-change`, or `/trim-change <base ref>` for a change against another base. Two fresh sub-agents read the diff: one looks for missing structure (the same thing built twice, steps repeated with one difference, mechanisms more general than their uses, existing code that could serve the change), the other for local waste (checks nothing can trigger, wrappers that only forward, comments that restate the code). Trims that keep the behavior and stay inside the change are applied and committed, with the tests green after each. Larger refactorings of existing code and cuts that change behavior are reported for you to decide; inside `implement-issue` they go into the pull request.
+
+`trim-change` adapts [`trim-code`](https://github.com/triskweline/skills/tree/main/skills/trim-code) from [triskweline/skills](https://github.com/triskweline/skills) by Henning Koch, licensed under the MIT License. Its [LICENSE](trim-change/LICENSE) carries the copyright notices of both the original and the modified version. It is renamed so it doesn't collide with an installed `trim-code`, runs unattended inside `implement-issue`, commits what it applies and hands the decisions to the pull request.
 
 ## License
 
