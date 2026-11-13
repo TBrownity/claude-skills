@@ -7,8 +7,9 @@ A personal collection of [Claude Code skills](https://docs.claude.com/en/docs/cl
 | Skill | Description |
 | --- | --- |
 | [decide-together](decide-together/) | Plans a change by walking through the future implementation and settling every decision, edge case and blocker with you before any code is written. The result is a plan an agent can execute without further questions. |
-| [implement-plan](implement-plan/) | Implements an agreed plan autonomously and end to end (tests, trimming, full test run, self-review), and only interrupts for true showstoppers. Runs on Sonnet, since the plan already holds the hard decisions. |
+| [implement-plan](implement-plan/) | Implements an agreed plan autonomously and end to end (tests, trimming with `trim-change`, full test run, self-review), and only interrupts for true showstoppers. Runs on Sonnet, since the plan already holds the hard decisions. |
 | [implement-issue](implement-issue/) | Implements a Linear or GitHub issue from just its identifier, reviews the change with `/merge-request-review` in an independent sub-agent, fixes the findings and opens a pull request that only needs to be read and merged. |
+| [merge-request-review](merge-request-review/) | Reviews the current branch against its target branch and writes a short review comment, ready for the pull request, covering correctness, security, performance, test coverage and the project's conventions. `implement-issue` runs it in an independent sub-agent. |
 | [trim-change](trim-change/) | Makes a working change simpler and smaller: applies and commits the trims that keep the behavior, and hands larger refactorings and behavior cuts to you to decide. Runs inside `implement-issue` between the checks and the review. |
 
 ## Installation
@@ -18,7 +19,7 @@ On Windows, link the skill folders into your personal skills folder with PowerSh
 ```powershell
 $skills = "$env:USERPROFILE\.claude\skills"
 New-Item -ItemType Directory -Force $skills | Out-Null
-foreach ($skill in "decide-together", "implement-plan", "implement-issue", "trim-change") {
+foreach ($skill in "decide-together", "implement-plan", "implement-issue", "merge-request-review", "trim-change") {
     New-Item -ItemType Junction -Path "$skills\$skill" -Target "$PWD\$skill"
 }
 ```
@@ -79,7 +80,9 @@ By default, the steps are not handed to a sub-agent each. They run one after the
 - Before these four questions, the skill asks in a dialog of its own how to split the steps of the plan, each option with its upside and its downside in one sentence each: all in one session (cheapest, later steps know what earlier ones found out, but later steps get less attention as the context grows; recommended), one sub-agent per step (a clean context and full attention per step, still without you, but more expensive and without what earlier steps found out; recommended for long plans whose steps touch separate code), or one session per step (a clean context, and you can follow and steer each step, but more expensive, and the run waits for you unless the session can start the next one itself). With sub-agents, the session coordinates and commits, and reads only the diff summary of each step. With sessions, each session starts the next one with a prompt that carries the settings and the notes for the hand-off, or prints the prompt for you, and the last one trims, checks, reviews and hands off. Sessions continue from each other's commits, so this option leaves out "no commits".
 - By default, the commits are made as the run goes, one commit per task, as soon as the task's tests pass. With one commit per logical change, refactorings, unrelated fixes, formatting and dependency upgrades are kept apart, and later fixes from trimming and self-review are split by topic instead of landing in one big commit. Without commits, it proposes the split at the hand-off.
 
-The skill also uses these skills from triskweline/skills, which are not part of this repository: `/work-in-branch`, `/trim-code`, `/pass-all-checks` and `/self-review`. If one is missing, `implement-plan` says so in one line and does that step itself.
+- Trims with [`trim-change`](#trim-change) from this repository instead of `trim-code`. It hands its report back, commits each trim on its own only with one commit per logical change, and the refactorings and behavior cuts it leaves open are asked about at the hand-off.
+
+The skill also uses these skills from triskweline/skills, which are not part of this repository: `/work-in-branch`, `/pass-all-checks` and `/self-review`. If one is missing, `implement-plan` says so in one line and does that step itself.
 
 ## implement-issue
 
@@ -116,7 +119,7 @@ The folder [implement-issue/evals](implement-issue/evals/) holds five test cases
 
 Makes a change that works simpler and smaller, with fewer concepts for a reader to understand. Run it with `/trim-change`, or `/trim-change <base ref>` for a change against another base. Two fresh sub-agents read the diff: one looks for missing structure (the same thing built twice, steps repeated with one difference, mechanisms more general than their uses, existing code that could serve the change), the other for local waste (checks nothing can trigger, wrappers that only forward, comments that restate the code). Trims that keep the behavior and stay inside the change are applied and committed, with the tests green after each. Larger refactorings of existing code and cuts that change behavior are reported for you to decide; inside `implement-issue` they go into the pull request.
 
-`trim-change` adapts [`trim-code`](https://github.com/triskweline/skills/tree/main/skills/trim-code) from [triskweline/skills](https://github.com/triskweline/skills) by Henning Koch, licensed under the MIT License. Its [LICENSE](trim-change/LICENSE) carries the copyright notices of both the original and the modified version. It is renamed so it doesn't collide with an installed `trim-code`, runs unattended inside `implement-issue`, commits what it applies and hands the decisions to the pull request.
+`trim-change` adapts [`trim-code`](https://github.com/triskweline/skills/tree/main/skills/trim-code) from [triskweline/skills](https://github.com/triskweline/skills) by Henning Koch, licensed under the MIT License. Its [LICENSE](trim-change/LICENSE) carries the copyright notices of both the original and the modified version. It is renamed so it doesn't collide with an installed `trim-code`, runs unattended inside `implement-issue` and `implement-plan`, commits what it applies and hands the decisions to the pull request.
 
 ## License
 

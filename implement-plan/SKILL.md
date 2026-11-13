@@ -28,7 +28,7 @@ not find there is missing.
 | --- | --- |
 | `/decide-together` | Settles every open requirement question with the human, and writes the plan, before the autonomous run starts. |
 | `/work-in-branch` | Moves the work onto a properly named feature branch. |
-| `/trim-code` | Makes the working change smaller; the L2 refactorings and L3 behavior cuts it leaves for approval are kept for the hand-off. |
+| `/trim-change` | Makes the working change smaller; the L2 refactorings and L3 behavior cuts it leaves for approval are kept for the hand-off. |
 | `/pass-all-checks` | Runs the whole test suite and all linters at the end and fixes failures. |
 | `/self-review` | Has a sub-agent review the finished change; valid findings are folded back in. |
 
@@ -270,13 +270,14 @@ Fixes that come later, from trimming, the full test run or the self-review, are 
 - When one file holds parts of several changes, stage only the part for this commit. Without an interactive `git add -p`, save the file's diff as a patch, remove the hunks of the other changes from it, and stage it with `git apply --cached`.
 - Check `git diff --staged` against your commit message: it holds everything the message says, and nothing else.
 - Write the message in the project's style, as `git log` shows it. The subject says what this commit does.
-- When `/trim-code` ends its report with a paragraph **For the commit message:**, put it into the message of the commit that holds the trims.
+- When `/trim-change` ends its report with a paragraph **For the commit message:**, put it into the message of the commit that holds the trims.
 
 ## Trim the change
 
-Unless the human chose to skip it, make your change smaller once the related tests pass, using the `/trim-code` skill.
-While trimming, run the related tests `/trim-code` asks for, but not the full suite: if the human chose it, it runs in the next step anyway. Where `/trim-code` lets you choose the model of its sub-agents, use Sonnet.
-It applies its L1 trims, and returns its L2 refactorings and L3 behavior cuts for approval. Don't apply those yourself: they need the human's approval. Keep them for the hand-off.
+Unless the human chose to skip it, make your change smaller once the related tests pass, using the `/trim-change` skill against the branch's base (`/trim-change <base ref>`).
+Give it what its brief asks for: the plan's requirements in the plan's own words, and the plan's decisions and the human's answers as decisions already made. Don't give it your reasoning about how you built the change. Tell it that a skill calls it, so it hands its report back to you instead of asking the human. With one commit per logical change, ask it to commit each trim on its own; otherwise let it leave the trims uncommitted, and commit them as the human chose.
+It runs the related tests itself, but not the full suite: if the human chose it, it runs in the next step anyway. Where you can choose the model of its sub-agents, use Sonnet.
+It applies its L1 trims, and returns its L2 refactorings and L3 behavior cuts for approval. Don't apply those yourself: they need the human's approval. Keep them for the hand-off, where you ask about them instead of pointing to a pull request.
 Its report names the existing code that applied trims touched. Point those locations out for a thorough human review in the hand-off.
 
 ## Run all checks
@@ -297,7 +298,7 @@ Only when your implementation is complete and has passed the checks the human ch
 
 - Recap your work (implementation, and the trimming, verification and self-review the human chose). Say in one line which steps needed help from a stronger model.
 - List your commits in order, with their messages. Without commits, give the proposed commits instead, as *Commit your work* describes.
-- List the L2 refactorings and L3 behavior cuts from trimming that await approval, as `/trim-code` reports them, with their codes (R1, R2, …) and under the headings it uses for them: each with the lines it saves, its review effort, for L3 the behavior it changes, and the recommendation. Ask which to apply.
+- List the L2 refactorings and L3 behavior cuts from trimming that await approval, as `/trim-change` reports them, with their codes (R1, R2, …) and under the headings it uses for them: each with the lines it saves, its review effort, for L3 the behavior it changes, and the recommendation. Ask which to apply.
 - Point out any decision that you are unsure about, and the small decisions you made where the plan left them open.
 - Point out code locations that should get a thorough human review.
 - List what you noticed outside the plan.
