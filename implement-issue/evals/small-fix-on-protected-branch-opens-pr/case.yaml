@@ -1,0 +1,10 @@
+schema_version: "1.1"
+name: small-fix-on-protected-branch-opens-pr
+expected_outcome: |
+  "#15" is a one-line bug: `json_export.py` writes the issue date as the due date. The run prints the banner
+  "Implementing Issue #15" and sizes the run as small, but finds that `main` requires a pull request (a
+  `pull_request` rule in the ruleset, branch protected). So it fixes the line with a regression test on a branch
+  named 15-<short-slug>, pushes that branch and leaves origin's `main` untouched, and writes a short PR.md with
+  "Closes #15". It starts no trim or review sub-agent.
+context:
+  scaffold_script: place-files.sh

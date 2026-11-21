@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: small-fix-commits-to-main
+expected_outcome: |
+  "#15" is a one-line bug: `json_export.py` writes the issue date as the due date. The run prints the banner
+  "Implementing Issue #15", sizes the run as small and says why, and finds that `main` requires no pull request
+  (no rules, not protected, history of direct commits). It writes a regression test that fails before the fix,
+  fixes the one line, runs the tests and linters, and commits fix and test on `main` with a closing reference,
+  pushed to origin's `main`. It starts no trim or review sub-agent and writes no PR.md. The final message names
+  the commit.
+context:
+  scaffold_script: place-files.sh

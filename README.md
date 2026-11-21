@@ -8,7 +8,7 @@ A personal collection of [Claude Code skills](https://docs.claude.com/en/docs/cl
 | --- | --- |
 | [decide-together](decide-together/) | Plans a change by walking through the future implementation and settling every decision, edge case and blocker with you before any code is written. The result is a plan an agent can execute without further questions. |
 | [implement-plan](implement-plan/) | Implements an agreed plan autonomously and end to end (tests, trimming with `trim-change`, full test run, self-review), and only interrupts for true showstoppers. Runs on Sonnet, since the plan already holds the hard decisions. |
-| [implement-issue](implement-issue/) | Implements a Linear or GitHub issue from just its identifier, reviews the change with `/merge-request-review` in an independent sub-agent, fixes the findings and opens a pull request that only needs to be read and merged. |
+| [implement-issue](implement-issue/) | Implements a Linear or GitHub issue from just its identifier, with effort scaled to the issue: a small fix gets a regression test and a commit, a larger issue is reviewed with `/merge-request-review` in an independent sub-agent and delivered as a pull request that only needs to be read and merged. |
 | [merge-request-review](merge-request-review/) | Reviews the current branch against its target branch and writes a short review comment, ready for the pull request, covering correctness, security, performance, test coverage and the project's conventions. `implement-issue` runs it in an independent sub-agent. |
 | [trim-change](trim-change/) | Makes a working change simpler and smaller: applies and commits the trims that keep the behavior, and hands larger refactorings and behavior cuts to you to decide. Runs inside `implement-issue` between the checks and the review. |
 
@@ -101,9 +101,15 @@ The skill:
 
 - A blocker whose work is already in an open pull request can be stacked on: the branch starts from that pull request's branch, and the new pull request targets it and starts with `Stacked on #NN`.
 - Reads the repository's implementation guide, `docs/implementing-issues.md`, from the base branch or from a branch named `implementing-issues-guide`. Where the guide and the skill both speak, the guide wins: checks to run, branch names, pull request style, statuses.
+- Sizes the run as small, medium or large once it has read the code, and scales the steps with it:
+  - Small (a fix of about 20 lines in one place, nothing left to decide): a regression test written first, the related checks, no trim, a careful look at the diff instead of a review sub-agent, and a commit pushed straight to the base branch. Where the base branch requires a pull request (by the project's docs, branch protection, rulesets or the branch's history), a short pull request instead.
+  - Medium (one focused change in one area): trims by the local pass without sub-agents, and reviews in one round unless a High finding calls for a second.
+  - Large (several parts, new modules, changed formats or interfaces): the full run.
+
+  Changes to permissions, money, stored data or public interfaces are at least medium however few lines they take, and the size only ever grows during a run.
 - Asks all open questions in one dialog at the start and works on its own after that. Where the issue doesn't ask to change existing data or behavior, it recommends the option that leaves them as they are.
 - Implements the issue with tests, in readable code that is split into focused files and follows the project's conventions. An existing file that is already too large isn't restructured: new logic goes into a new unit, and the pull request suggests the split.
-- Runs all checks, then trims the change with `/trim-change` before the review, so the reviewer reads the change and not its scaffolding.
+- For a medium or large issue, runs all checks, then trims the change with `/trim-change` before the review, so the reviewer reads the change and not its scaffolding.
 - Reviews the change with `/merge-request-review` in an independent sub-agent, which reads the issue itself instead of the implementer's summary of it, and fixes the findings.
 - Opens a pull request ready for review after a complete local run, and as a draft only when checks couldn't run or something blocks. Its title follows the style of the last merged pull requests. Its description lists the changes, each acceptance criterion with its code and test, the trims and review findings and how they were fixed, the trim's open decisions, and the decisions to check.
 - Follows CI and fixes the failures it caused in batches, so each push to the pull request starts one CI run. `Closes ENG-123` or `Closes #42` closes the issue on merge.
@@ -112,7 +118,7 @@ The skill:
 
 It needs the Linear MCP server for Linear issues, the `gh` CLI or the GitHub MCP tools for GitHub, and the `merge-request-review` and `trim-change` skills. If the review skill is missing, the sub-agent reviews by the same criteria without it; if the trim skill is missing, the skill goes through its checklist of local cuts itself.
 
-The folder [implement-issue/evals](implement-issue/evals/) holds five test cases with simulated Linear and GitHub data: a clear issue whose comments change the requirements, a change next to an oversized file, an issue with contradicting requirements, a GitHub issue given by number, and a blocked issue. They use the layout that `claude plugin eval` reads.
+The folder [implement-issue/evals](implement-issue/evals/) holds seven test cases with simulated Linear and GitHub data: a clear issue whose comments change the requirements, a change next to an oversized file, an issue with contradicting requirements, a GitHub issue given by number, a blocked issue, and a small fix, once on a `main` that takes direct commits and once on a `main` whose ruleset requires a pull request. They use the layout that `claude plugin eval` reads.
 
 ## trim-change
 

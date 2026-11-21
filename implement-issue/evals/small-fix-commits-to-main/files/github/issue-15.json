@@ -1,0 +1,10 @@
+{
+  "number": 15,
+  "title": "JSON export writes the issue date as the due date",
+  "url": "https://github.com/example/invoicing/issues/15",
+  "state": "OPEN",
+  "labels": [{"name": "bug"}],
+  "author": {"login": "anna-weber"},
+  "body": "I exported our invoices with `python -m invoicing export --format json --output invoices.json` for the dunning run, and every invoice has `due_date` equal to its `issue_date`. Invoice 2026-0003, for example, was issued on 2026-03-20 and is due on 2026-04-19, but the export says `\"due_date\": \"2026-03-20\"`.\n\nThe due date in the export should be the invoice's due date.",
+  "comments": []
+}

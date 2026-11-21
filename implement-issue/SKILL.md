@@ -1,11 +1,13 @@
 ---
 name: implement-issue
-description: Implement an issue end to end from just its identifier or link, whether it lives in Linear (ENG-123, a linear.app link) or on GitHub (#42, owner/repo#42, a github.com issue link), and leave a GitHub pull request that only needs a human to read it and click merge. Works out where the issue lives, fetches it with its comments and images, implements it as readable, well-structured code with tests, reviews the change with /merge-request-review in an independent sub-agent, fixes the findings, and opens the pull request with a description of what was built and what the review fixed. Given several issues, asks whether to implement them in one session, one sub-agent each or one session each, and opens a pull request per issue. Use whenever the user names an issue and wants it implemented, built, fixed, worked on or turned into a pull request, e.g. "implement ENG-123", "pick up #42", "work on issue 42", "setz ENG-123 um", "mach einen PR für #42", even if they don't say where the issue lives.
+description: Implement an issue end to end from just its identifier or link, whether it lives in Linear (ENG-123, a linear.app link) or on GitHub (#42, owner/repo#42, a github.com issue link), with effort scaled to the issue. Fetches the issue with its comments and images and implements it as readable code with tests. A small fix gets a regression test and a commit, pushed straight to the base branch where no pull request is required. Larger issues are trimmed with /trim-change, reviewed with /merge-request-review in an independent sub-agent and delivered as a pull request that only needs a human to click merge. Given several issues, asks how to split them across sessions or sub-agents. Use whenever the user names an issue and wants it implemented, built, fixed, worked on or turned into a pull request, e.g. "implement ENG-123", "pick up #42", "fix issue 42", "setz ENG-123 um", "mach einen PR für #42", even if they don't say where the issue lives.
 ---
 
 # Implement issue
 
-You get an issue, from Linear or from GitHub, and deliver a pull request on GitHub. The human's only remaining job is to read the pull request and click merge. So everything a reviewer would otherwise have to do (check the requirements, catch bugs, make the code readable, explain the change) happens here, before the pull request exists.
+You get an issue, from Linear or from GitHub, and deliver the change on GitHub, usually as a pull request. The human's only remaining job is to read the pull request and click merge. So everything a reviewer would otherwise have to do (check the requirements, catch bugs, make the code readable, explain the change) happens here, before the pull request exists.
+
+The effort follows the size of the issue. A typo or a wrong field name that one line fixes doesn't need two trim agents, a review agent and a pull request with eight sections: it needs a regression test, a careful look at the diff and a commit. Step 3 sizes the run as small, medium or large, and the other steps say what each size does. Where the base branch requires a pull request, even a one-line fix gets one, only a short one.
 
 The run has one short window at the start where you may ask the human questions. After that, they are away until the pull request is ready.
 
@@ -13,15 +15,15 @@ The run has one short window at the start where you may ask the human questions.
 
 1. Work out where the issue lives, fetch it, and check that it can be worked on: found, still open, not blocked. Only then announce the run with the banner, and turn the issue into a list of acceptance criteria.
 2. Check the starting point: repository, working tree, tools.
-3. Ask the open questions, all in one dialog, or start right away if nothing is open.
+3. Read the code the issue touches, size the run (small, medium or large), and ask the open questions, all in one dialog, or start right away if nothing is open.
 4. Create the branch, and for a Linear issue set it to In Progress.
 5. Implement, with tests, committing as you go.
-6. Run all tests and linters, then trim the change with `/trim-change`: remove what the issue doesn't need, without changing behavior.
-7. Review the change with `/merge-request-review` in an independent sub-agent, and fix what it finds.
-8. Open the pull request.
-9. For a Linear issue, set it to In Review and link the pull request. Then hand off.
+6. Run all tests and linters, then trim the change: remove what the issue doesn't need, without changing behavior.
+7. Review the change, for a medium or large issue with `/merge-request-review` in an independent sub-agent, and fix what it finds.
+8. Open the pull request, or push a small fix to the base branch where no pull request is required.
+9. For a Linear issue, set it to In Review and link the pull request (Done and the commit, for a fix without one). Then hand off.
 
-Track the run in a task list (in Claude Code: `TaskCreate` and `TaskUpdate`, or `TodoWrite`), with step 5 split into one task per larger part of the issue, so the human sees at a glance how far you are if they look in. Keep one task in progress at a time, and mark it done as soon as it's finished.
+For a medium or large issue, track the run in a task list (in Claude Code: `TaskCreate` and `TaskUpdate`, or `TodoWrite`), for a large one with step 5 split into one task per larger part of the issue, so the human sees at a glance how far you are if they look in. Keep one task in progress at a time, and mark it done as soon as it's finished. A small fix is done in a few minutes and needs no task list.
 
 A run can cover several issues: when the human names more than one, or chooses in step 3 to include an issue's open sub-issues. The steps then work as *Several issues* at the end describes.
 
@@ -107,6 +109,12 @@ Before anything changes, check what could make the run fail halfway, so you can 
 - **Base branch:** the remote's default branch (`git rev-parse --abbrev-ref origin/HEAD`, else `main` or `master`), unless the project's docs name another target for pull requests, like `develop`. Fetch it, so you start from its latest state.
 - **An earlier attempt:** a branch for this issue, locally or on the remote, under the name from step 4, or an open pull request that already refers to the issue. Ask whether to continue on it or to start fresh.
 - **GitHub:** the remote must be on GitHub, and you need a way to open a pull request: the `gh` CLI (`gh auth status`) or the GitHub MCP tools (`create_pull_request`). If neither works, ask now.
+- **Whether the base branch requires a pull request:** this decides how a small fix gets in (step 3). It does when any of these holds:
+  - The project's docs or the implementation guide say that changes go through pull requests.
+  - Branch protection or a ruleset requires it: `gh api repos/<owner>/<repo>/rules/branches/<base>` lists a rule of type `pull_request`, or `gh api repos/<owner>/<repo>/branches/<base> --jq .protected` (the GitHub MCP tool `list_branches` shows the same) is `true`.
+  - The team works that way: `git log --first-parent --oneline -20 origin/<base>` shows only merges of pull requests ("Merge pull request #…") or squashed pull requests ending in `(#NN)`. Direct commits among them mean that small fixes going straight in are normal there.
+  - The human asked for a pull request, your environment lets you push only to certain branches, or the issue is stacked on another pull request.
+  - You can't find out, e.g. because the rules aren't readable with your access. Then assume it does.
 - **Conventions:** read CLAUDE.md, AGENTS.md, CONTRIBUTING.md and the README, if present, for code style, structure and the commands for tests and linters. The CI configuration (e.g. `.github/workflows/`) shows which checks a pull request must pass.
 - **The implementation guide:** a repository may keep a guide for implementing its issues in `docs/implementing-issues.md`. Read it when it is on the base branch. When it isn't, look for a remote branch named `implementing-issues-guide` and read the file from there, without checking that branch out:
 
@@ -120,9 +128,32 @@ Before anything changes, check what could make the run fail halfway, so you can 
 - **The review skill:** `merge-request-review`, possibly listed with a prefix like `anthropic-skills:merge-request-review`. If it's missing, say so in one line and go on: the review sub-agent then reviews by the same criteria without it (see step 7).
 - **The trim skill:** `trim-change`, possibly with the same prefix. If it's missing, say so in one line and trim by its criteria yourself (see step 6).
 
-## 3. Ask the open questions, once
+## 3. Size the run and ask the open questions, once
 
 First read the code the issue touches, but only that. Many questions answer themselves from the code, like how similar features work or which module a change belongs in.
+
+### Size the run
+
+Now that you know the issue and the code, decide how large the change is. The size decides how much of the machinery below the run uses:
+
+| | Small | Medium | Large |
+| --- | --- | --- | --- |
+| **What it is** | A fix that the issue and the code make obvious: one place, about 20 changed lines or fewer besides the test, nothing left to decide. A typo, a wrong field, a missing check, an off-by-one. | One focused change in one area: a few files, a new option, a bug with several cases. | Several parts or areas, new modules, a changed data format or interface, or many acceptance criteria. |
+| **Task list** | None | One task per step | Step 5 split per part of the issue |
+| **Tests (step 5)** | One regression test that fails without the fix | At least one per acceptance criterion | Per criterion, plus the edge cases |
+| **Checks (step 6)** | The related tests and the linters; the full suite too if it runs in a few minutes | Everything | Everything |
+| **Trim (step 6)** | None | Its local pass, by yourself | `/trim-change` |
+| **Review (step 7)** | Your own careful look at the diff | One sub-agent; a second round only after a High finding | One sub-agent; a second round after a High finding or substantial fixes |
+| **Integration (step 8)** | A commit on the base branch; a short pull request if the base branch requires one (step 2) | Pull request | Pull request |
+
+- **Some changes are at least medium, however few lines they take:** authentication and permissions, money amounts, data migrations and stored formats, a public interface, concurrency, a security fix. A one-line change there can do the most damage, and it deserves a second pair of eyes.
+- **When in doubt, choose the larger size.** A wasted review costs minutes, a broken base branch costs the team.
+- **The size only grows.** If the fix turns out larger while you implement it (more places to change, a decision the issue doesn't make), switch to the larger size and do what it calls for from there on. Never shrink a size to finish faster.
+- **The human's prompt wins** where it names the effort or the way in ("with a full review", "just commit it", "ohne PR"). A pull request that the base branch requires stays, whatever the prompt says: tell the human that it does, and why.
+
+Say the size in one line, with the reason and the way in, e.g. "Small: `json_export.py` writes the issue date as the due date. `main` doesn't require pull requests, so I'll commit the fix there directly."
+
+### Ask the open questions
 
 A question is worth asking when a wrong guess would mean redoing a large part of the work, or would get the pull request rejected:
 
@@ -136,13 +167,13 @@ Decide everything else yourself, the way the surrounding code does it: names, fi
 
 Ask all questions in one dialog (in Claude Code: `AskUserQuestion`, with up to four questions; a second dialog right after only if more remain). If the run covers several issues, the dialog also asks how to split them (see *Several issues*). Put the option you recommend first and mark it `(Recommended)`, so the human can agree quickly. Where the issue doesn't ask to change existing data or behavior, recommend the option that leaves it as it is. A new pricing rule, for example, applies to new invoices, not to invoices that were already sent or paid: that is the safer default, and the human can still widen it. If nothing is open, don't ask: say in one line that the issue is clear, and start.
 
-Running this skill is the human's request to push a branch, open a pull request and, for a Linear issue, update its status. Don't ask for that again.
+Running this skill is the human's request to push a branch, open a pull request and, for a Linear issue, update its status, and for a small fix where the base branch allows it, to push the fix to the base branch. Don't ask for that again.
 
 After this window the human is away. Decide new questions yourself and note them for the pull request. Interrupt only for a true showstopper: something that makes the issue impossible as written, or a wrong guess that would throw away most of the work.
 
 ## 4. Start
 
-Create the branch from the latest base branch:
+A small fix that goes to the base branch directly needs no branch of its own: work on the base branch, brought up to date with `git pull --ff-only`. Otherwise create the branch from the latest base branch:
 
 - **Linear:** named with the issue's `gitBranchName` (e.g. `tim/eng-123-add-csv-export`). Linear's GitHub integration links branch and pull request to the issue by this name. Without it, use `<identifier in lowercase>-<short-slug>`.
 - **GitHub:** named `<number>-<short-slug>` after the issue's title (e.g. `42-export-invoices-as-csv`), the name GitHub's own "Create a branch" button would suggest.
@@ -155,7 +186,9 @@ For a Linear issue, set it to the team's "In Progress" status. Teams name their 
 
 ## 5. Implement
 
-The pull request is the only thing the human reads, and they should understand it without having been there when you wrote it. Everything in this step serves that.
+The pull request (or, for a small fix, the commit) is the only thing the human reads, and they should understand it without having been there when you wrote it. Everything in this step serves that.
+
+For a small fix, start with the test: write the regression test, watch it fail for the reason the issue describes, then fix the code and watch it pass. Write down the one or two acceptance criteria in a line, not as a list to track. The rules below hold for one line as much as for a thousand, but most of them won't come up.
 
 **Meet every acceptance criterion.** Work through the AC list, and keep track of where each criterion is implemented and tested. Build what the issue asks for and nothing more: a bug or cleanup outside the issue goes into the pull request's notes, not into the code.
 
@@ -183,7 +216,7 @@ The pull request is the only thing the human reads, and they should understand i
 
 ### Tests
 
-- Add tests for the new behavior: at least one per acceptance criterion, plus the edge cases the issue names or clearly implies (empty input, missing permissions, invalid data). Use the project's test framework, and put the tests next to similar ones.
+- Add tests for the new behavior: at least one per acceptance criterion, plus the edge cases the issue names or clearly implies (empty input, missing permissions, invalid data). For a small fix, one regression test is enough. Use the project's test framework, and put the tests next to similar ones.
 - Fix existing tests that break because the issue changes behavior, and say so in the pull request.
 - If the project has no tests at all, don't set up a test framework unasked. Check the behavior another way, e.g. by running the code, and say in the pull request how you checked it.
 - Run the related tests as you go, with quiet output that lists only failures (e.g. `pytest -q`, `rspec --format progress`). Tests are the fastest way to know a criterion is met.
@@ -196,7 +229,7 @@ Push the branch to save your work whenever you like: until the pull request exis
 
 ## 6. Run all checks, then trim
 
-Once the issue is implemented, run the whole test suite and every linter the project has (find them in its docs, CI configuration, `package.json`, `Makefile`, …), and fix what fails. Assume everything passed before your change.
+Once the issue is implemented, run the whole test suite and every linter the project has (find them in its docs, CI configuration, `package.json`, `Makefile`, …), and fix what fails. Assume everything passed before your change. For a small fix, the related tests and the linters are enough when the full suite takes longer than a few minutes: CI runs the rest.
 
 If the implementation guide (step 2) lists checks, that list is the one to run, in its order, including the ones that apply only when certain files changed: a generated header, exported symbols, an ABI version, coverage floors, mutation testing on the diff, a fuzz target. CI alone doesn't show which of them a merge requires, and a check that only reports in CI can still be a reason to add a test.
 
@@ -204,7 +237,7 @@ If a test fails that your change can't plausibly affect, check whether it fails 
 
 ### Trim
 
-With the tree green, run the `trim-change` skill against the base branch (`/trim-change`, or `/trim-change <base ref>` for
+A small fix skips this: there is nothing to trim in a few lines. For a medium issue, go through the skill's "local pass" list yourself, as described at the end of this section; starting two sub-agents for a diff of that size costs more than it finds. For a large issue, with the tree green, run the `trim-change` skill against the base branch (`/trim-change`, or `/trim-change <base ref>` for
 a stacked issue). It briefs two fresh sub-agents that look for missing structure and local waste in the diff, applies
 and commits the trims that keep behavior and stay inside the change, and reports the rest: refactorings that reach
 deeper into existing code, and cuts that would change behavior. Give it what its brief asks for: the issue's own
@@ -221,7 +254,9 @@ cut, tests green after each.
 
 ## 7. Review and fix
 
-The review runs in an independent worker: a fresh sub-agent (in Claude Code: the `Agent` tool with the `general-purpose` agent), never in this session. You wrote the code, so you read it the way you meant it, and you read the issue the way you understood it. A worker that starts from nothing sees the change the way the human will see it, and checks it against the issue itself, not against your reading of it.
+For a small fix, review it yourself instead: read `git diff origin/<base branch>` once more against the issue. Does it fix what the issue describes, at its cause and not only where the symptom shows? Did the regression test fail before the fix? Is anything in the diff that the fix doesn't need? Is the same mistake in a neighboring place the issue doesn't name? That goes into the hand-off, not into the fix. If this look turns up more than the fix itself, the issue isn't small: switch to medium (step 3) and review as below.
+
+For a medium or large issue, the review runs in an independent worker: a fresh sub-agent (in Claude Code: the `Agent` tool with the `general-purpose` agent), never in this session. You wrote the code, so you read it the way you meant it, and you read the issue the way you understood it. A worker that starts from nothing sees the change the way the human will see it, and checks it against the issue itself, not against your reading of it.
 
 So keep your own view out of the brief: no AC list, no summary of what you built, no explanation of why. The worker gets the issue from its source itself and the change from git. Give it this brief, with the line on reading the issue that fits the source:
 
@@ -259,9 +294,19 @@ Then go through the findings:
 - Leave a finding you disagree with unfixed, and note a one-sentence reason for the pull request. The human decides.
 - Note each finding with its severity, a short description and how you fixed it: the pull request reports them.
 
-After the fixes, run the related tests again, and the full suite and linters if the fixes touched more than a few lines. If you fixed a High finding or the fixes were substantial, review once more with the same brief in a new sub-agent, to make sure the fixes didn't create new problems. Don't send the second round to the first worker: it would read the fixes with its own earlier findings in mind. Two review rounds at most: findings that remain after that go into the pull request as open points.
+After the fixes, run the related tests again, and the full suite and linters if the fixes touched more than a few lines. If you fixed a High finding, or for a large issue the fixes were substantial, review once more with the same brief in a new sub-agent, to make sure the fixes didn't create new problems. Don't send the second round to the first worker: it would read the fixes with its own earlier findings in mind. Two review rounds at most: findings that remain after that go into the pull request as open points.
 
 ## 8. Open the pull request
+
+### A small fix without a pull request
+
+When the fix is small and the base branch doesn't require a pull request (steps 2 and 3), commit it on the base branch with a message in the project's style that says what was wrong, and end the message with the closing reference (`Fixes #42`, `Fixes ENG-123`, in the keyword the project uses). GitHub closes the issue once the commit is on the default branch, and Linear's GitHub integration links the commit to the issue.
+
+Before you push, `git pull --rebase` in case the base branch moved, and run the related tests again if it did. Then `git push origin <base branch>`. If the push is rejected because the branch is protected after all, the fix needs a pull request: create the branch from step 4 at your commit, push it, and open a short pull request as described below.
+
+The push starts CI on the base branch, which everyone builds on. Follow it as the end of this step describes. If it turns red because of your commit, fix it at once with a follow-up commit, or revert your commit if you can't, and say so in the hand-off. Then go on with step 9.
+
+### The pull request
 
 Push the branch (`git push -u origin <branch>`) and open the pull request against the base branch. Open it ready for review when the local run of step 6 was complete: the human should be able to merge it as it is, and CI then runs once. Open it as a draft when checks couldn't run locally, when something blocks (see the end) or when you need the pull request's number before the work is done, and mark it ready for review once, when the work is complete: `gh pr ready <number>`, or the GitHub MCP tool `update_pull_request` with `draft: false`. Repositories often run their expensive jobs (other operating systems, fuzzing, mutation testing) only for a pull request that is ready for review, so don't switch between draft and ready more than that once. Use `gh pr create --base <base branch> --title "<title>" --body-file <file>` (`--draft` for a draft), or the GitHub MCP tool `create_pull_request` (`draft: true`).
 
@@ -312,7 +357,21 @@ there are none.>
 - <what you noticed outside the issue; files that want splitting; pre-existing test failures; checks that couldn't run locally>
 ```
 
-If the review found nothing, the *Review* section says "`/merge-request-review` found no significant issues." If the trim applied nothing, its line says so too.
+If the review found nothing, the *Review* section says "`/merge-request-review` found no significant issues." If the trim applied nothing, its line says so too. For a medium issue, the trim line names the local pass instead of `/trim-change`.
+
+A small fix gets a short description, unless the repository's template asks for more:
+
+```markdown
+<One or two sentences: what was wrong, and what the fix changes.>
+
+<Closing reference>
+
+## Review
+Small fix, so no trim and no review sub-agent: I checked the diff against the issue myself.
+
+## Testing
+- <the regression test, which failed before the fix; the commands you ran>
+```
 
 If the repository runs CI on pull requests and you can follow it (`gh pr checks <number> --watch`; without `gh`, the GitHub MCP tool `pull_request_read` with `get_check_runs`, or a subscription to the pull request's activity where the session offers one), wait for the result and fix the failures your change caused, with new commits. Every push to an open pull request starts a new run, and jobs on Windows and macOS cost two and ten times the minutes of Linux jobs, so read the whole run before you push again: collect every failure, fix them together, run the local checks of step 6 again and push once. Never push an empty commit, amend and force-push, or close and reopen the pull request to start a run. A job that failed for reasons outside your change (a network error, a flaky test) is rerun with `gh run rerun <run id> --failed` or the GitHub MCP tool `actions_run_trigger` with `rerun_failed_jobs`; if it fails the same way again, that goes into the hand-off. A pull request with red checks isn't ready to merge. Wait for the checks a merge requires; a job the implementation guide marks as advisory (for example mutation testing that only reports) doesn't hold up the hand-off, but its warnings on your lines go into the pull request's notes. If you can't follow CI, say so in the hand-off.
 
@@ -325,9 +384,11 @@ For a Linear issue:
 
 A GitHub issue needs nothing more: the closing reference already shows the pull request on the issue.
 
+A small fix without a pull request is already integrated. A Linear issue goes to the team's done status (the status of type `completed` in `list_issue_statuses`), unless the integration has moved it already, with the commit linked (`links`, with the commit's URL on GitHub). A GitHub issue is closed by the closing reference once the commit is on the default branch. If the base branch isn't the default branch, close the issue with a comment that names the commit (`gh issue close 42 --comment "Fixed in <sha>"`, or the GitHub MCP tool `issue_write`).
+
 End with a short message:
 
-- the link to the pull request,
+- the link to the pull request, or for a small fix without one, the commit and the branch it went to,
 - two or three sentences on what was implemented,
 - how many review findings were fixed, and which were left open,
 - the decisions the human should look at, and anything that needs their attention before merging.
@@ -340,7 +401,7 @@ On a long run, the harness may summarize earlier parts of the conversation. If t
 
 ## Several issues
 
-Each issue still gets its own branch, pull request and banner. Issues that build on each other (one blocks the other, or one needs code the other adds) are always implemented one after the other, by the same session or agent: the later issue is stacked on the earlier one, so its branch starts from the earlier one's, and its pull request targets that branch and starts with `Stacked on #NN` (steps 4 and 8). An issue blocked only by another issue of this run counts as not blocked.
+Each issue still gets its own banner and its own size. Each medium or large issue gets its own branch and pull request; a small one goes in the way step 3 says, as its own commit. Issues that build on each other (one blocks the other, or one needs code the other adds) are always implemented one after the other, by the same session or agent: the later issue is stacked on the earlier one, so its branch starts from the earlier one's, and its pull request targets that branch and starts with `Stacked on #NN` (steps 4 and 8). An issue blocked only by another issue of this run counts as not blocked.
 
 Steps 1 to 3 run once for all issues: fetch and check each issue, check the starting point once, and ask the open questions of all issues in one dialog, each question naming its issue. Add the question how to split the issues, as the first question of that dialog (header `Split`). If the issues are only known after the dialog, because the human chose to include sub-issues, ask it in a dialog right after. Name the issues in the question, put the option you recommend first, and give each option its upside and its downside in one short sentence each, as its description:
 
@@ -350,7 +411,7 @@ Steps 1 to 3 run once for all issues: fetch and check each issue, check the star
 > - One session for all: I implement the issues here, one after the other. Upside: cheapest, and later issues know what earlier ones found out about the code. Downside: the context grows with every issue, so later issues get less attention, and details get lost once the context is summarized.
 > - One session per issue: a fresh session per issue, in parallel. Upside: each issue is a run of its own with a clean context, which you can follow and steer. Downside: costs more, pull requests that touch the same code can conflict, and unless I can start sessions myself, you start each one.
 
-Recommend one session for all when the issues build on each other or touch the same code, otherwise one agent per issue. Without a clear answer, use your recommendation.
+Recommend one session for all when the issues build on each other or touch the same code, or when most of them are small: a sub-agent or a session for a one-line fix costs more than the fix. Otherwise recommend one agent per issue. Without a clear answer, use your recommendation.
 
 ### One session for all
 
@@ -363,14 +424,15 @@ You stay in this session as the coordinator. For each issue, print its banner, s
 ```text
 Implement <Linear issue ENG-123 | GitHub issue owner/repo#42> with the implement-issue skill,
 steps 4 to 6 only: create the branch <name> from <origin/<base branch> | the branch of ENG-122>,
-implement with tests and commit as you go, run all checks and /trim-change.
+implement with tests and commit as you go, run all checks and trim as step 6 says
+for a <medium | large> issue.
 Don't change the issue's status.
 Settled already, don't ask: <the answers to this issue's questions, or "nothing was open">
 Report: the branch, your commits, the acceptance criteria with where each is implemented and
 tested, the decisions you made, the trim report, and what you noticed outside the issue.
 ```
 
-A worker can't start a sub-agent of its own, so the reviews start from this session. When a worker reports, review its branch as step 7 describes, with the step 7 brief naming the worker's branch and working tree instead of the current branch. Send the findings back to the same worker (in Claude Code: `SendMessage` with its ID), to fix them as step 7 describes, and then to push and open the pull request as step 8 describes, with the findings in its *Review* section. A second review round, if step 7 calls for one, starts from here too. Once all pull requests are open, do step 9 for each issue, and hand off once with all of them.
+Small issues don't get a worker: implement them yourself, in this session, as step 3 describes for their size. Tell each worker its issue's size, so it trims as step 6 says for that size. A worker can't start a sub-agent of its own, so the reviews start from this session. When a worker reports, review its branch as step 7 describes, with the step 7 brief naming the worker's branch and working tree instead of the current branch. Send the findings back to the same worker (in Claude Code: `SendMessage` with its ID), to fix them as step 7 describes, and then to push and open the pull request as step 8 describes, with the findings in its *Review* section. A second review round, if step 7 calls for one, starts from here too. Once all pull requests are open, do step 9 for each issue, and hand off once with all of them.
 
 ### One session per issue
 
