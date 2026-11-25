@@ -15,10 +15,10 @@ The run has one short window at the start where you may ask the human questions.
 
 1. Work out where the issue lives, fetch it, and check that it can be worked on: found, still open, not blocked. Only then announce the run with the banner, and turn the issue into a list of acceptance criteria.
 2. Check the starting point: repository, working tree, tools.
-3. Read the code the issue touches, size the run (small, medium or large), and ask the open questions, all in one dialog, or start right away if nothing is open.
+3. Read the code the issue touches, size the run (small, medium or large), and ask the open questions and how much to test, all in one dialog.
 4. Create the branch, and for a Linear issue set it to In Progress.
 5. Implement, with tests, committing as you go.
-6. Run all tests and linters, then trim the change: remove what the issue doesn't need, without changing behavior.
+6. Run the tests and linters, then trim the change: remove what the issue doesn't need, without changing behavior.
 7. Review the change, for a medium or large issue with `/merge-request-review` in an independent sub-agent, and fix what it finds.
 8. Open the pull request, or push a small fix to the base branch where no pull request is required.
 9. For a Linear issue, set it to In Review and link the pull request (Done and the commit, for a fix without one). Then hand off.
@@ -141,7 +141,7 @@ Now that you know the issue and the code, decide how large the change is. The si
 | **What it is** | A fix that the issue and the code make obvious: one place, about 20 changed lines or fewer besides the test, nothing left to decide. A typo, a wrong field, a missing check, an off-by-one. | One focused change in one area: a few files, a new option, a bug with several cases. | Several parts or areas, new modules, a changed data format or interface, or many acceptance criteria. |
 | **Task list** | None | One task per step | Step 5 split per part of the issue |
 | **Tests (step 5)** | One regression test that fails without the fix | At least one per acceptance criterion | Per criterion, plus the edge cases |
-| **Checks (step 6)** | The related tests and the linters; the full suite too if it runs in a few minutes | Everything | Everything |
+| **Checks (step 6)** | The linters, and the tests the human chose (below) | As for small | As for small |
 | **Trim (step 6)** | None | Its local pass, by yourself | `/trim-change` |
 | **Review (step 7)** | Your own careful look at the diff | One sub-agent; a second round only after a High finding | One sub-agent; a second round after a High finding or substantial fixes |
 | **Integration (step 8)** | A commit on the base branch; a short pull request if the base branch requires one (step 2) | Pull request | Pull request |
@@ -149,7 +149,7 @@ Now that you know the issue and the code, decide how large the change is. The si
 - **Some changes are at least medium, however few lines they take:** authentication and permissions, money amounts, data migrations and stored formats, a public interface, concurrency, a security fix. A one-line change there can do the most damage, and it deserves a second pair of eyes.
 - **When in doubt, choose the larger size.** A wasted review costs minutes, a broken base branch costs the team.
 - **The size only grows.** If the fix turns out larger while you implement it (more places to change, a decision the issue doesn't make), switch to the larger size and do what it calls for from there on. Never shrink a size to finish faster.
-- **The human's prompt wins** where it names the effort or the way in ("with a full review", "just commit it", "ohne PR"). A pull request that the base branch requires stays, whatever the prompt says: tell the human that it does, and why.
+- **The human's prompt wins** where it names the effort, the tests to run or the way in ("with a full review", "only the related tests", "just commit it", "ohne PR"). A pull request that the base branch requires stays, whatever the prompt says: tell the human that it does, and why.
 
 Say the size in one line, with the reason and the way in, e.g. "Small: `json_export.py` writes the issue date as the due date. `main` doesn't require pull requests, so I'll commit the fix there directly."
 
@@ -165,7 +165,16 @@ A question is worth asking when a wrong guess would mean redoing a large part of
 
 Decide everything else yourself, the way the surrounding code does it: names, file layout, internal structure, small details. Note these decisions for the pull request.
 
-Ask all questions in one dialog (in Claude Code: `AskUserQuestion`, with up to four questions; a second dialog right after only if more remain). If the run covers several issues, the dialog also asks how to split them (see *Several issues*). Put the option you recommend first and mark it `(Recommended)`, so the human can agree quickly. Where the issue doesn't ask to change existing data or behavior, recommend the option that leaves it as it is. A new pricing rule, for example, applies to new invoices, not to invoices that were already sent or paid: that is the safer default, and the human can still widen it. If nothing is open, don't ask: say in one line that the issue is clear, and start.
+One question is always in the dialog, for every size, even when nothing else is open: how much to test locally. Only an answer the human already gave, in the prompt or in a `Settled already` line, replaces it. Say in the question how long the full suite takes, as the docs or the durations of recent CI runs show (`gh run list`), and whether CI runs it on pull requests:
+
+> **Tests:** The full suite takes about 25 minutes, and CI runs it on every pull request. How much should I run locally?
+>
+> - Full suite (Recommended): Upside: failures show up before the pull request exists, so CI should pass on its first run. Downside: every full run takes about 25 minutes.
+> - Related tests, rest in CI: Upside: the pull request is there much sooner. Downside: other failures show up only in CI, and each round of fixes is another CI run.
+
+Where CI doesn't run the suite, the second option is "Related tests only", and its downside says that the rest of the suite then doesn't run at all before the merge. Recommend the full suite, except for a small fix when the full suite takes longer than a few minutes and CI runs it: then recommend the related tests. Linters run either way, and so do the checks the implementation guide lists (step 6). Without a clear answer, use your recommendation; when an issue grows out of small after the dialog, run the full suite unless the human chose the related tests.
+
+Ask all questions in one dialog (in Claude Code: `AskUserQuestion`, with up to four questions; a second dialog right after only if more remain). If the run covers several issues, the dialog also asks how to split them (see *Several issues*). Put the option you recommend first and mark it `(Recommended)`, so the human can agree quickly. Where the issue doesn't ask to change existing data or behavior, recommend the option that leaves it as it is. A new pricing rule, for example, applies to new invoices, not to invoices that were already sent or paid: that is the safer default, and the human can still widen it. If nothing else is open, the dialog holds only the question how much to test: say in one line that the issue is clear, ask it, and start.
 
 Running this skill is the human's request to push a branch, open a pull request and, for a Linear issue, update its status, and for a small fix where the base branch allows it, to push the fix to the base branch. Don't ask for that again.
 
@@ -227,9 +236,9 @@ Commit each logical change as soon as its tests pass. A logical change is one yo
 
 Push the branch to save your work whenever you like: until the pull request exists, a push usually runs no CI (most workflows run on `pull_request` and on pushes to the main branch; the `on:` section of the workflow files says). Once the pull request is open, every push starts a run, so from then on push in batches (step 8).
 
-## 6. Run all checks, then trim
+## 6. Run the checks, then trim
 
-Once the issue is implemented, run the whole test suite and every linter the project has (find them in its docs, CI configuration, `package.json`, `Makefile`, …), and fix what fails. Assume everything passed before your change. For a small fix, the related tests and the linters are enough when the full suite takes longer than a few minutes: CI runs the rest.
+Once the issue is implemented, run the tests chosen in step 3 and every linter the project has (find them in its docs, CI configuration, `package.json`, `Makefile`, …), and fix what fails. Assume everything passed before your change. The full suite means the whole test suite; the related tests mean the new tests and the existing tests of the code the change touches and of the code that calls it. Keep to the choice everywhere in the run, also where `trim-change` (below) runs the project's tests.
 
 If the implementation guide (step 2) lists checks, that list is the one to run, in its order, including the ones that apply only when certain files changed: a generated header, exported symbols, an ABI version, coverage floors, mutation testing on the diff, a fuzz target. CI alone doesn't show which of them a merge requires, and a check that only reports in CI can still be a reason to add a test.
 
@@ -294,7 +303,7 @@ Then go through the findings:
 - Leave a finding you disagree with unfixed, and note a one-sentence reason for the pull request. The human decides.
 - Note each finding with its severity, a short description and how you fixed it: the pull request reports them.
 
-After the fixes, run the related tests again, and the full suite and linters if the fixes touched more than a few lines. If you fixed a High finding, or for a large issue the fixes were substantial, review once more with the same brief in a new sub-agent, to make sure the fixes didn't create new problems. Don't send the second round to the first worker: it would read the fixes with its own earlier findings in mind. Two review rounds at most: findings that remain after that go into the pull request as open points.
+After the fixes, run the related tests again, and all the checks of step 6 if the fixes touched more than a few lines. If you fixed a High finding, or for a large issue the fixes were substantial, review once more with the same brief in a new sub-agent, to make sure the fixes didn't create new problems. Don't send the second round to the first worker: it would read the fixes with its own earlier findings in mind. Two review rounds at most: findings that remain after that go into the pull request as open points.
 
 ## 8. Open the pull request
 
@@ -308,7 +317,7 @@ The push starts CI on the base branch, which everyone builds on. Follow it as th
 
 ### The pull request
 
-Push the branch (`git push -u origin <branch>`) and open the pull request against the base branch. Open it ready for review when the local run of step 6 was complete: the human should be able to merge it as it is, and CI then runs once. Open it as a draft when checks couldn't run locally, when something blocks (see the end) or when you need the pull request's number before the work is done, and mark it ready for review once, when the work is complete: `gh pr ready <number>`, or the GitHub MCP tool `update_pull_request` with `draft: false`. Repositories often run their expensive jobs (other operating systems, fuzzing, mutation testing) only for a pull request that is ready for review, so don't switch between draft and ready more than that once. Use `gh pr create --base <base branch> --title "<title>" --body-file <file>` (`--draft` for a draft), or the GitHub MCP tool `create_pull_request` (`draft: true`).
+Push the branch (`git push -u origin <branch>`) and open the pull request against the base branch. Open it ready for review when the local run of step 6 was complete: the human should be able to merge it as it is, and CI then runs once. A run with the related tests chosen in step 3 counts as complete: CI is where the full suite runs. Open it as a draft when checks couldn't run locally, when something blocks (see the end) or when you need the pull request's number before the work is done, and mark it ready for review once, when the work is complete: `gh pr ready <number>`, or the GitHub MCP tool `update_pull_request` with `draft: false`. Repositories often run their expensive jobs (other operating systems, fuzzing, mutation testing) only for a pull request that is ready for review, so don't switch between draft and ready more than that once. Use `gh pr create --base <base branch> --title "<title>" --body-file <file>` (`--draft` for a draft), or the GitHub MCP tool `create_pull_request` (`draft: true`).
 
 **Title:** in the project's style for pull requests. Find it before you write: the implementation guide may fix the format, and the titles of the last ten merged pull requests (`gh pr list --state merged --limit 10`, or the GitHub MCP tool `list_pull_requests`) show the pattern, including where the identifier goes and whether a title describes the change (`[ENG-123] Let callers cancel a download`) or repeats the issue's title. Without a pattern, a short summary, for a Linear issue with the identifier in front: `ENG-123: Export invoices as CSV`. For a GitHub issue the summary alone is enough, since the closing reference links the issue, and a `(#42)` in the title would be mistaken for the pull request's own number.
 
@@ -351,7 +360,7 @@ there are none.>
 - <decisions you made where the issue left room, and the answers to the questions at the start>
 
 ## Testing
-- <tests added; the commands you ran and their results; how to try the change by hand>
+- <tests added; the commands you ran and their results; whether you ran the full suite or the related tests, as chosen at the start; how to try the change by hand>
 
 ## Notes
 - <what you noticed outside the issue; files that want splitting; pre-existing test failures; checks that couldn't run locally>
@@ -373,7 +382,7 @@ Small fix, so no trim and no review sub-agent: I checked the diff against the is
 - <the regression test, which failed before the fix; the commands you ran>
 ```
 
-If the repository runs CI on pull requests and you can follow it (`gh pr checks <number> --watch`; without `gh`, the GitHub MCP tool `pull_request_read` with `get_check_runs`, or a subscription to the pull request's activity where the session offers one), wait for the result and fix the failures your change caused, with new commits. Every push to an open pull request starts a new run, and jobs on Windows and macOS cost two and ten times the minutes of Linux jobs, so read the whole run before you push again: collect every failure, fix them together, run the local checks of step 6 again and push once. Never push an empty commit, amend and force-push, or close and reopen the pull request to start a run. A job that failed for reasons outside your change (a network error, a flaky test) is rerun with `gh run rerun <run id> --failed` or the GitHub MCP tool `actions_run_trigger` with `rerun_failed_jobs`; if it fails the same way again, that goes into the hand-off. A pull request with red checks isn't ready to merge. Wait for the checks a merge requires; a job the implementation guide marks as advisory (for example mutation testing that only reports) doesn't hold up the hand-off, but its warnings on your lines go into the pull request's notes. If you can't follow CI, say so in the hand-off.
+If the repository runs CI on pull requests and you can follow it (`gh pr checks <number> --watch`; without `gh`, the GitHub MCP tool `pull_request_read` with `get_check_runs`, or a subscription to the pull request's activity where the session offers one), wait for the result and fix the failures your change caused, with new commits. Every push to an open pull request starts a new run, and jobs on Windows and macOS cost two and ten times the minutes of Linux jobs, so read the whole run before you push again: collect every failure, fix them together, run the local checks of step 6 again and push once. Never push an empty commit, amend and force-push, or close and reopen the pull request to start a run. A job that failed for reasons outside your change (a network error, a flaky test) is rerun with `gh run rerun <run id> --failed` or the GitHub MCP tool `actions_run_trigger` with `rerun_failed_jobs`; if it fails the same way again, that goes into the hand-off. A pull request with red checks isn't ready to merge. Wait for the checks a merge requires; a job the implementation guide marks as advisory (for example mutation testing that only reports) doesn't hold up the hand-off, but its warnings on your lines go into the pull request's notes. If you can't follow CI, say so in the hand-off, and where the full suite was left to CI, that nobody has seen it pass yet.
 
 ## 9. Update the issue and hand off
 
@@ -413,6 +422,8 @@ Steps 1 to 3 run once for all issues: fetch and check each issue, check the star
 
 Recommend one session for all when the issues build on each other or touch the same code, or when most of them are small: a sub-agent or a session for a one-line fix costs more than the fix. Otherwise recommend one agent per issue. Without a clear answer, use your recommendation.
 
+The question how much to test (step 3) is asked once for all issues, and its answer goes into the `Settled already` line of every worker and session.
+
 ### One session for all
 
 Take the issues one after the other, each after the issues it builds on, and run steps 4 to 9 for each one completely, starting with its banner. Start each branch from the latest base branch, unless the issue builds on another one. Hand off once at the end, with the pull requests of all issues.
@@ -424,7 +435,7 @@ You stay in this session as the coordinator. For each issue, print its banner, s
 ```text
 Implement <Linear issue ENG-123 | GitHub issue owner/repo#42> with the implement-issue skill,
 steps 4 to 6 only: create the branch <name> from <origin/<base branch> | the branch of ENG-122>,
-implement with tests and commit as you go, run all checks and trim as step 6 says
+implement with tests and commit as you go, run the checks and trim as step 6 says
 for a <medium | large> issue.
 Don't change the issue's status.
 Settled already, don't ask: <the answers to this issue's questions, or "nothing was open">

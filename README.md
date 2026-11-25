@@ -108,6 +108,7 @@ The skill:
 
   Changes to permissions, money, stored data or public interfaces are at least medium however few lines they take, and the size only ever grows during a run.
 - Asks all open questions in one dialog at the start and works on its own after that. Where the issue doesn't ask to change existing data or behavior, it recommends the option that leaves them as they are.
+- Always asks in that dialog how much to test locally, for every size and even when nothing else is open: the full suite, or only the related tests, leaving the rest to CI. The question says how long the full suite takes and whether CI runs it. It recommends the full suite, and the related tests for a small fix whose full suite takes longer than a few minutes. Linters and the checks of the implementation guide run either way. Only an answer already in your prompt replaces the question.
 - Implements the issue with tests, in readable code that is split into focused files and follows the project's conventions. An existing file that is already too large isn't restructured: new logic goes into a new unit, and the pull request suggests the split.
 - For a medium or large issue, runs all checks, then trims the change with `/trim-change` before the review, so the reviewer reads the change and not its scaffolding.
 - Reviews the change with `/merge-request-review` in an independent sub-agent, which reads the issue itself instead of the implementer's summary of it, and fixes the findings.
